@@ -16,7 +16,7 @@ import {
   startOfDay,
   addHours,
   isSameDay as isSameDate,
-  isToday,
+  isToday as isActuallyToday,
   formatDistanceToNow,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle, ListTodo } from 'lucide-react';
@@ -64,8 +64,13 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [emptySlots, setEmptySlots] = useState<{start: Date, end: Date}[]>([]);
+  const [today, setToday] = useState(new Date());
 
   useEffect(() => {
+    // This ensures that 'today' is only set once on component mount,
+    // providing a stable reference for date comparisons.
+    setToday(new Date());
+
     async function loadData() {
       const [fetchedEvents, fetchedTasks] = await Promise.all([getEvents(), getTasks()]);
       setEvents(fetchedEvents);
@@ -99,11 +104,13 @@ export default function CalendarPage() {
   
   const itemsByDate = [...events, ...tasks].reduce((acc, item) => {
     const date = 'startTime' in item ? item.startTime : item.dueDate;
-    const dateKey = format(date, 'yyyy-MM-dd');
-    if (!acc[dateKey]) {
-      acc[dateKey] = [];
+    if (date) {
+        const dateKey = format(date, 'yyyy-MM-dd');
+        if (!acc[dateKey]) {
+        acc[dateKey] = [];
+        }
+        acc[dateKey].push(item as DisplayItem);
     }
-    acc[dateKey].push(item as DisplayItem);
     return acc;
   }, {} as Record<string, DisplayItem[]>);
 
@@ -171,7 +178,7 @@ export default function CalendarPage() {
                   <div
                     className={cn(
                       'w-7 h-7 flex items-center justify-center rounded-full text-sm',
-                      isSameDay(day, new Date()) && 'bg-primary text-primary-foreground'
+                      isSameDay(day, today) && 'bg-primary text-primary-foreground'
                     )}
                   >
                     {format(day, 'd')}
@@ -247,7 +254,7 @@ export default function CalendarPage() {
                                     <div className="flex-1">
                                         <h3 className="font-semibold">{item.title}</h3>
                                         <p className="text-sm text-muted-foreground">
-                                          {isToday(item.dueDate)
+                                          {isSameDay(item.dueDate, today)
                                             ? `Due ${formatDistanceToNow(item.dueDate, { addSuffix: true })}`
                                             : `Due on ${format(item.dueDate, 'MMM d')}`
                                           }
