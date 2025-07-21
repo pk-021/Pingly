@@ -13,8 +13,11 @@ import {
   isSameDay,
   addMonths,
   subMonths,
+  startOfDay,
+  addHours,
+  isSameDay as isSameDate,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Pin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,11 +25,40 @@ import { getEvents } from '@/lib/data-service';
 import { cn } from '@/lib/utils';
 import type { CalendarEvent } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+
+const workingHours = { start: 9, end: 17 }; // 9 AM to 5 PM
+
+function getEmptySlots(events: CalendarEvent[], date: Date) {
+  const startOfWorkDay = addHours(startOfDay(date), workingHours.start);
+  const endOfWorkDay = addHours(startOfDay(date), workingHours.end);
+
+  const todaysEvents = events
+    .filter(event => isSameDate(event.startTime, date))
+    .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+
+  const emptySlots = [];
+  let lastEventEnd = startOfWorkDay;
+
+  for (const event of todaysEvents) {
+    if (event.startTime > lastEventEnd) {
+      emptySlots.push({ start: lastEventEnd, end: event.startTime });
+    }
+    lastEventEnd = event.endTime > lastEventEnd ? event.endTime : lastEventEnd;
+  }
+  
+  if (lastEventEnd < endOfWorkDay) {
+    emptySlots.push({ start: lastEventEnd, end: endOfWorkDay });
+  }
+
+  return emptySlots.filter(slot => slot.start < slot.end);
+}
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [emptySlots, setEmptySlots] = useState<{start: Date, end: Date}[]>([]);
 
   useEffect(() => {
     async function loadData() {
@@ -35,6 +67,12 @@ export default function CalendarPage() {
     }
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (events.length > 0) {
+      setEmptySlots(getEmptySlots(events, selectedDate));
+    }
+  }, [selectedDate, events]);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -143,36 +181,61 @@ export default function CalendarPage() {
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[calc(100vh-240px)]">
-              {selectedDayEvents.length > 0 ? (
-                <div className="space-y-4 pr-4">
-                  {selectedDayEvents.sort((a,b) => a.startTime.getTime() - b.startTime.getTime()).map(event => (
-                    <div key={event.id} className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-secondary/50 transition-colors">
-                      <div className="font-semibold text-sm text-center">
-                          <p>{format(event.startTime, 'HH:mm')}</p>
-                          <p className="text-muted-foreground">-</p>
-                          <p>{format(event.endTime, 'HH:mm')}</p>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-semibold">{event.title}</h3>
-                            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                              {event.roomNumber && (
-                                  <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {event.roomNumber}</span>
-                              )}
+              <div className="space-y-4 pr-4">
+                  {selectedDayEvents.length > 0 ? (
+                    selectedDayEvents.sort((a,b) => a.startTime.getTime() - b.startTime.getTime()).map(event => (
+                      <div key={event.id} className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-secondary/50 transition-colors">
+                        <div className="font-semibold text-sm text-center">
+                            <p>{format(event.startTime, 'HH:mm')}</p>
+                            <p className="text-muted-foreground">-</p>
+                            <p>{format(event.endTime, 'HH:mm')}</p>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-semibold">{event.title}</h3>
+                              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                                {event.roomNumber && (
+                                    <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {event.roomNumber}</span>
+                                )}
+                              </div>
                             </div>
+                            {event.isOfficial && <Badge variant="outline">Official</Badge>}
                           </div>
-                          {event.isOfficial && <Badge variant="outline">Official</Badge>}
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-10 h-full flex flex-col justify-center items-center">
+                      <p className="text-muted-foreground">No events scheduled for this day.</p>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-10 h-full flex flex-col justify-center items-center">
-                  <p className="text-muted-foreground">No events scheduled for this day.</p>
-                </div>
-              )}
+                  )}
+
+                  <Separator className="my-6" />
+
+                  <div>
+                    <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
+                        <Clock className="w-5 h-5"/>
+                        Available Slots
+                    </h3>
+                     {emptySlots.length > 0 ? (
+                        <div className="space-y-3">
+                        {emptySlots.map((slot, index) => (
+                            <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200 text-green-800">
+                                <CheckCircle className="w-5 h-5" />
+                                <p className="font-medium text-sm">
+                                    <span className="font-bold">{format(slot.start, 'HH:mm')}</span> - <span className="font-bold">{format(slot.end, 'HH:mm')}</span>
+                                </p>
+                            </div>
+                        ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-6">
+                        <p className="text-sm text-muted-foreground">No empty slots available.</p>
+                        </div>
+                    )}
+                  </div>
+              </div>
             </ScrollArea>
           </CardContent>
         </Card>
