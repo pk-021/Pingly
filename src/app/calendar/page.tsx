@@ -69,7 +69,7 @@ export default function CalendarPage() {
   useEffect(() => {
     // This ensures that 'today' is only set once on component mount,
     // providing a stable reference for date comparisons.
-    setToday(new Date());
+    setToday(startOfDay(new Date()));
 
     async function loadData() {
       const [fetchedEvents, fetchedTasks] = await Promise.all([getEvents(), getTasks()]);
@@ -146,7 +146,7 @@ export default function CalendarPage() {
               <Button variant="outline" size="icon" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button variant="outline" onClick={() => setCurrentDate(new Date())}>
+              <Button variant="outline" onClick={() => { setCurrentDate(new Date()); setSelectedDate(new Date()); }}>
                 Today
               </Button>
               <Button variant="outline" size="icon" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
@@ -246,6 +246,7 @@ export default function CalendarPage() {
                                 </div>
                             );
                         } else { // It's a task
+                            const isTaskDueToday = isSameDay(item.dueDate, today);
                             return (
                                 <div key={item.id} className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-secondary/50 transition-colors">
                                     <div className="pt-1">
@@ -254,7 +255,7 @@ export default function CalendarPage() {
                                     <div className="flex-1">
                                         <h3 className="font-semibold">{item.title}</h3>
                                         <p className="text-sm text-muted-foreground">
-                                          {isSameDay(item.dueDate, today)
+                                          {isTaskDueToday
                                             ? `Due ${formatDistanceToNow(item.dueDate, { addSuffix: true })}`
                                             : `Due on ${format(item.dueDate, 'MMM d')}`
                                           }
