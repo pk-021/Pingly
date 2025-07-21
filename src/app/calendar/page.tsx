@@ -46,58 +46,58 @@ export default function CalendarPage() {
   const selectedDayEvents = eventsByDate[format(selectedDate, 'yyyy-MM-dd')] || [];
 
   return (
-    <div className="flex flex-col xl:flex-row gap-4 h-[calc(100vh-120px)]">
-      <div className="flex-1 flex flex-col">
-        <Card className="flex-1 flex flex-col">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">
-                {format(currentDate, 'MMMM yyyy')}
-              </h2>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" onClick={() => setCurrentDate(new Date())}>
-                  Today
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+    <div className="flex flex-col lg:flex-row gap-8 h-full">
+      <Card className="flex-1">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">
+              {format(currentDate, 'MMMM yyyy')}
+            </h2>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" onClick={() => setCurrentDate(new Date())}>
+                Today
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col">
-            <div className="grid grid-cols-7 text-center font-medium text-muted-foreground border-b">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="py-2">{day}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 grid-rows-6 flex-1">
-              {days.map(day => (
-                <div
-                  key={day.toString()}
-                  onClick={() => setSelectedDate(day)}
-                  className={cn(
-                    'border-r border-b p-2 flex flex-col cursor-pointer transition-colors',
-                    isSameMonth(day, monthStart) ? 'bg-card' : 'bg-muted/50',
-                    !isSameMonth(day, monthStart) && 'text-muted-foreground',
-                    'hover:bg-secondary',
-                    isSameDay(day, selectedDate) && 'bg-primary/10 ring-2 ring-primary'
-                  )}
-                >
-                  <div className='flex justify-end'>
-                    <div
-                      className={cn(
-                        'w-7 h-7 flex items-center justify-center rounded-full text-sm',
-                        isSameDay(day, new Date()) && 'bg-primary text-primary-foreground'
-                      )}
-                    >
-                      {format(day, 'd')}
-                    </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-7 text-center font-medium text-muted-foreground border-b">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              <div key={day} className="py-2">{day}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 grid-rows-6">
+            {days.map(day => (
+              <div
+                key={day.toString()}
+                onClick={() => setSelectedDate(day)}
+                className={cn(
+                  'border-r border-b p-2 flex flex-col cursor-pointer transition-colors h-28',
+                  isSameMonth(day, monthStart) ? 'bg-card' : 'bg-muted/50',
+                  !isSameMonth(day, monthStart) && 'text-muted-foreground',
+                  'hover:bg-secondary',
+                  isSameDay(day, selectedDate) && 'bg-primary/10 ring-2 ring-primary'
+                )}
+              >
+                <div className='flex justify-end'>
+                  <div
+                    className={cn(
+                      'w-7 h-7 flex items-center justify-center rounded-full text-sm',
+                      isSameDay(day, new Date()) && 'bg-primary text-primary-foreground'
+                    )}
+                  >
+                    {format(day, 'd')}
                   </div>
-                  <div className="flex-1 overflow-y-auto space-y-1 -mx-2 px-2">
-                    {(eventsByDate[format(day, 'yyyy-MM-dd')] || []).slice(0, 2).map(event => (
+                </div>
+                <ScrollArea className="flex-1 -mx-2">
+                  <div className="space-y-1 px-2">
+                    {(eventsByDate[format(day, 'yyyy-MM-dd')] || []).map(event => (
                       <div
                         key={event.id}
                         className={cn(
@@ -108,26 +108,21 @@ export default function CalendarPage() {
                         {event.title}
                       </div>
                     ))}
-                    {(eventsByDate[format(day, 'yyyy-MM-dd')] || []).length > 2 && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                            + {(eventsByDate[format(day, 'yyyy-MM-dd')] || []).length - 2} more
-                        </div>
-                    )}
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                </ScrollArea>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="w-full xl:w-[350px] flex-shrink-0">
-        <Card className="h-full">
+      <div className="w-full lg:w-[350px] flex-shrink-0">
+        <Card className="sticky top-6">
           <CardHeader>
             <CardTitle>Schedule for {format(selectedDate, 'MMMM d')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[calc(100vh-280px)]">
+            <ScrollArea className="h-[calc(100vh-240px)]">
               {selectedDayEvents.length > 0 ? (
                 <div className="space-y-4 pr-4">
                   {selectedDayEvents.sort((a,b) => a.startTime.getTime() - b.startTime.getTime()).map(event => (
