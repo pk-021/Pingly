@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { mockEvents } from "@/lib/mock-data";
 import type { CalendarEvent } from "@/lib/types";
 import { isToday, format } from 'date-fns';
-import { CalendarClock, Pin, Book } from "lucide-react";
+import { CalendarClock, Pin } from "lucide-react";
 import { Badge } from "../ui/badge";
 
 export default function DailyScheduleCard() {
@@ -33,9 +33,6 @@ export default function DailyScheduleCard() {
                                       <div>
                                         <h3 className="font-semibold">{event.title}</h3>
                                         <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                                          {event.subject && (
-                                              <span className="flex items-center gap-2"><Book className="w-4 h-4" /> {event.subject}</span>
-                                          )}
                                           {event.roomNumber && (
                                               <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {event.roomNumber}</span>
                                           )}

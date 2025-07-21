@@ -13,7 +13,6 @@ export const mockEvents: CalendarEvent[] = [
     startTime: new Date(new Date().setHours(9, 0, 0, 0)),
     endTime: new Date(new Date().setHours(10, 30, 0, 0)),
     isOfficial: true,
-    subject: 'Computer Science',
     roomNumber: 'A-101',
   },
   {
@@ -22,7 +21,6 @@ export const mockEvents: CalendarEvent[] = [
     startTime: new Date(new Date().setHours(10, 0, 0, 0)), // Conflict with CS101
     endTime: new Date(new Date().setHours(11, 0, 0, 0)),
     isOfficial: false,
-    subject: 'Group Project',
     roomNumber: 'Library Room 3',
   },
   {
@@ -31,7 +29,6 @@ export const mockEvents: CalendarEvent[] = [
     startTime: new Date(new Date().setHours(14, 0, 0, 0)),
     endTime: new Date(new Date().setHours(16, 0, 0, 0)),
     isOfficial: true,
-    subject: 'Advising',
     roomNumber: 'Faculty Office 21B',
   },
   {
@@ -40,7 +37,6 @@ export const mockEvents: CalendarEvent[] = [
     startTime: new Date(new Date(tomorrow).setHours(11, 0, 0, 0)),
     endTime: new Date(new Date(tomorrow).setHours(12, 0, 0, 0)),
     isOfficial: false,
-    subject: 'Personal',
   },
     {
     id: '5',
@@ -48,7 +44,6 @@ export const mockEvents: CalendarEvent[] = [
     startTime: new Date(new Date(tomorrow).setHours(15, 0, 0, 0)),
     endTime: new Date(new Date(tomorrow).setHours(16, 30, 0, 0)),
     isOfficial: true,
-    subject: 'Administration',
     roomNumber: 'Conference Hall A',
   },
 ];
