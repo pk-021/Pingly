@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import type { CalendarEvent, Task, DisplayItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const workingHours = { start: 9, end: 17 }; // 9 AM to 5 PM
 
@@ -58,6 +59,7 @@ function getEmptySlots(events: CalendarEvent[], date: Date) {
 const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
 
 export default function CalendarPage() {
+  const [isLoading, setIsLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -67,9 +69,11 @@ export default function CalendarPage() {
 
   useEffect(() => {
     async function loadData() {
+      setIsLoading(true);
       const [fetchedEvents, fetchedTasks] = await Promise.all([getEvents(), getTasks()]);
       setEvents(fetchedEvents);
       setTasks(fetchedTasks.filter(task => !task.completed));
+      setIsLoading(false);
     }
     loadData();
   }, []);
@@ -220,7 +224,13 @@ export default function CalendarPage() {
           <CardContent>
             <ScrollArea className="h-[calc(100vh-240px)]">
               <div className="space-y-4 pr-4">
-                  {selectedDayItems.length > 0 ? (
+                  {isLoading ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-20 w-full" />
+                      <Skeleton className="h-20 w-full" />
+                      <Skeleton className="h-20 w-full" />
+                    </div>
+                  ) : selectedDayItems.length > 0 ? (
                     selectedDayItems.map(item => {
                         if ('startTime' in item) { // It's an event
                             return (
@@ -279,7 +289,12 @@ export default function CalendarPage() {
                         <Clock className="w-5 h-5"/>
                         Available Slots
                     </h3>
-                     {emptySlots.length > 0 ? (
+                     {isLoading ? (
+                       <div className="space-y-3">
+                         <Skeleton className="h-12 w-full" />
+                         <Skeleton className="h-12 w-full" />
+                       </div>
+                     ) : emptySlots.length > 0 ? (
                         <div className="space-y-3">
                         {emptySlots.map((slot, index) => (
                             <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200 text-green-800">
