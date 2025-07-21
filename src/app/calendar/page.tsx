@@ -17,13 +17,13 @@ import {
   addHours,
   isSameDay as isSameDate,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle, ListTodo } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getEvents } from '@/lib/data-service';
+import { getEvents, getTasks } from '@/lib/data-service';
 import { cn } from '@/lib/utils';
-import type { CalendarEvent } from '@/lib/types';
+import type { CalendarEvent, Task, DisplayItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 
@@ -58,12 +58,14 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [emptySlots, setEmptySlots] = useState<{start: Date, end: Date}[]>([]);
 
   useEffect(() => {
     async function loadData() {
-      const fetchedEvents = await getEvents();
+      const [fetchedEvents, fetchedTasks] = await Promise.all([getEvents(), getTasks()]);
       setEvents(fetchedEvents);
+      setTasks(fetchedTasks);
     }
     loadData();
   }, []);
@@ -75,7 +77,6 @@ export default function CalendarPage() {
   }, [selectedDate, events]);
 
   const monthStart = startOfMonth(currentDate);
-  const monthEnd = endOfMonth(currentDate);
 
   const firstDay = startOfWeek(startOfMonth(currentDate));
   const lastDay = endOfWeek(endOfMonth(currentDate));
@@ -92,16 +93,22 @@ export default function CalendarPage() {
     days.length = 42;
   }
   
-  const eventsByDate = events.reduce((acc, event) => {
-    const dateKey = format(event.startTime, 'yyyy-MM-dd');
+  const itemsByDate = [...events, ...tasks].reduce((acc, item) => {
+    const date = 'startTime' in item ? item.startTime : item.dueDate;
+    const dateKey = format(date, 'yyyy-MM-dd');
     if (!acc[dateKey]) {
       acc[dateKey] = [];
     }
-    acc[dateKey].push(event);
+    acc[dateKey].push(item as DisplayItem);
     return acc;
-  }, {} as Record<string, CalendarEvent[]>);
+  }, {} as Record<string, DisplayItem[]>);
 
-  const selectedDayEvents = eventsByDate[format(selectedDate, 'yyyy-MM-dd')] || [];
+  const selectedDayItems = (itemsByDate[format(selectedDate, 'yyyy-MM-dd')] || []).sort((a,b) => {
+      const timeA = 'startTime' in a ? a.startTime.getTime() : startOfDay(a.dueDate).getTime();
+      const timeB = 'startTime' in b ? b.startTime.getTime() : startOfDay(b.dueDate).getTime();
+      return timeA - timeB;
+  });
+
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 h-full">
@@ -155,15 +162,17 @@ export default function CalendarPage() {
                 </div>
                 <div className="flex-1 overflow-y-auto -mx-2">
                   <div className="space-y-1 px-2">
-                    {(eventsByDate[format(day, 'yyyy-MM-dd')] || []).map(event => (
+                    {(itemsByDate[format(day, 'yyyy-MM-dd')] || []).map(item => (
                       <div
-                        key={event.id}
+                        key={item.id}
                         className={cn(
                             "text-xs p-1 rounded-md truncate",
-                            event.isOfficial ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground"
+                            'startTime' in item
+                                ? (item.isOfficial ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground")
+                                : "bg-blue-100 text-blue-800"
                         )}
                       >
-                        {event.title}
+                        {item.title}
                       </div>
                     ))}
                   </div>
@@ -182,32 +191,49 @@ export default function CalendarPage() {
           <CardContent>
             <ScrollArea className="h-[calc(100vh-240px)]">
               <div className="space-y-4 pr-4">
-                  {selectedDayEvents.length > 0 ? (
-                    selectedDayEvents.sort((a,b) => a.startTime.getTime() - b.startTime.getTime()).map(event => (
-                      <div key={event.id} className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-secondary/50 transition-colors">
-                        <div className="font-semibold text-sm text-center">
-                            <p>{format(event.startTime, 'HH:mm')}</p>
-                            <p className="text-muted-foreground">-</p>
-                            <p>{format(event.endTime, 'HH:mm')}</p>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-semibold">{event.title}</h3>
-                              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                                {event.roomNumber && (
-                                    <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {event.roomNumber}</span>
-                                )}
-                              </div>
-                            </div>
-                            {event.isOfficial && <Badge variant="outline">Official</Badge>}
-                          </div>
-                        </div>
-                      </div>
-                    ))
+                  {selectedDayItems.length > 0 ? (
+                    selectedDayItems.map(item => {
+                        if ('startTime' in item) { // It's an event
+                            return (
+                                <div key={item.id} className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-secondary/50 transition-colors">
+                                <div className="font-semibold text-sm text-center">
+                                    <p>{format(item.startTime, 'HH:mm')}</p>
+                                    <p className="text-muted-foreground">-</p>
+                                    <p>{format(item.endTime, 'HH:mm')}</p>
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-start">
+                                    <div>
+                                        <h3 className="font-semibold">{item.title}</h3>
+                                        <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                                        {item.roomNumber && (
+                                            <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {item.roomNumber}</span>
+                                        )}
+                                        </div>
+                                    </div>
+                                    {item.isOfficial && <Badge variant="outline">Official</Badge>}
+                                    </div>
+                                </div>
+                                </div>
+                            );
+                        } else { // It's a task
+                            return (
+                                <div key={item.id} className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-secondary/50 transition-colors">
+                                    <div className="pt-1">
+                                        <ListTodo className="w-5 h-5 text-primary"/>
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="font-semibold">{item.title}</h3>
+                                        <p className="text-sm text-muted-foreground">Task due today</p>
+                                    </div>
+                                    <Badge variant={item.priority === 'High' ? 'destructive' : item.priority === 'Medium' ? 'secondary' : 'outline'}>{item.priority}</Badge>
+                                </div>
+                            );
+                        }
+                    })
                   ) : (
                     <div className="text-center py-10 h-full flex flex-col justify-center items-center">
-                      <p className="text-muted-foreground">No events scheduled for this day.</p>
+                      <p className="text-muted-foreground">No events or tasks for this day.</p>
                     </div>
                   )}
 

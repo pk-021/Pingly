@@ -14,3 +14,5 @@ export type Task = {
   dueDate: Date;
   completed: boolean;
 };
+
+export type DisplayItem = CalendarEvent | Task;
