@@ -1,32 +1,35 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, CheckCircle } from "lucide-react";
 import { mockEvents } from "@/lib/mock-data";
-import { format, startOfDay, endOfDay, addHours } from "date-fns";
+import { format, startOfDay, endOfDay, addHours, isSameDay } from "date-fns";
 
 const workingHours = { start: 9, end: 17 }; // 9 AM to 5 PM
 
 function getEmptySlots() {
   const today = new Date();
-  const sortedEvents = mockEvents
-    .filter(event => format(event.startTime, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'))
+  const startOfWorkDay = addHours(startOfDay(today), workingHours.start);
+  const endOfWorkDay = addHours(startOfDay(today), workingHours.end);
+
+  const todaysEvents = mockEvents
+    .filter(event => isSameDay(event.startTime, today))
     .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 
   const emptySlots = [];
-  let lastEventEnd = addHours(startOfDay(today), workingHours.start);
+  let lastEventEnd = startOfWorkDay;
 
-  for (const event of sortedEvents) {
+  for (const event of todaysEvents) {
     if (event.startTime > lastEventEnd) {
       emptySlots.push({ start: lastEventEnd, end: event.startTime });
     }
     lastEventEnd = event.endTime > lastEventEnd ? event.endTime : lastEventEnd;
   }
   
-  const endOfWorkDay = addHours(startOfDay(today), workingHours.end);
   if (lastEventEnd < endOfWorkDay) {
     emptySlots.push({ start: lastEventEnd, end: endOfWorkDay });
   }
 
-  return emptySlots;
+  return emptySlots.filter(slot => slot.start < slot.end);
 }
 
 export default function EmptySlotsPage() {
