@@ -13,6 +13,7 @@ import {
   isSameDay,
   addMonths,
   subMonths,
+  eachWeekOfInterval,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Pin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,10 +30,28 @@ export default function CalendarPage() {
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
-  const startDate = startOfWeek(monthStart);
-  const endDate = endOfWeek(monthEnd);
 
-  const days = eachDayOfInterval({ start: startDate, end: endDate });
+  // Always render 6 weeks to keep the calendar height consistent
+  const calendarWeeks = eachWeekOfInterval({
+    start: monthStart,
+    end: monthEnd,
+  }, { weekStartsOn: 0 }); // 0 for Sunday
+  
+  const firstDay = startOfWeek(startOfMonth(currentDate));
+  const lastDay = endOfWeek(endOfMonth(currentDate));
+
+  let days = eachDayOfInterval({ start: firstDay, end: lastDay });
+  if (days.length < 42) {
+    const extraDays = eachDayOfInterval({
+        start: new Date(days[days.length - 1].getTime() + 86400000), // one day after last day
+        end: new Date(days[days.length - 1].getTime() + (42 - days.length) * 86400000)
+    })
+    days = [...days, ...extraDays];
+  }
+  if (days.length > 42) {
+    days.length = 42;
+  }
+  
 
   const eventsByDate = mockEvents.reduce((acc, event) => {
     const dateKey = format(event.startTime, 'yyyy-MM-dd');
@@ -95,7 +114,7 @@ export default function CalendarPage() {
                     {format(day, 'd')}
                   </div>
                 </div>
-                <ScrollArea className="flex-1 -mx-2">
+                <div className="flex-1 overflow-y-auto -mx-2">
                   <div className="space-y-1 px-2">
                     {(eventsByDate[format(day, 'yyyy-MM-dd')] || []).map(event => (
                       <div
@@ -109,7 +128,7 @@ export default function CalendarPage() {
                       </div>
                     ))}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             ))}
           </div>
