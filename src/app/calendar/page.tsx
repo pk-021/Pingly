@@ -101,7 +101,7 @@ export default function CalendarPage() {
     return [...events, ...tasks].reduce((acc, item) => {
         const date = 'startTime' in item ? item.startTime : item.dueDate;
         if (date) {
-            const dateKey = format(date, 'yyyy-MM-dd');
+            const dateKey = format(startOfDay(date), 'yyyy-MM-dd');
             if (!acc[dateKey]) {
             acc[dateKey] = [];
             }
@@ -114,23 +114,22 @@ export default function CalendarPage() {
 
   const selectedDayItems = useMemo(() => {
     const items = itemsByDate[format(selectedDate, 'yyyy-MM-dd')] || [];
-    return items.sort((a,b) => {
-        const isTaskA = 'priority' in a;
-        const isTaskB = 'priority' in b;
-
-        if (isTaskA && !isTaskB) return -1;
-        if (!isTaskB && isTaskA) return 1;
-
-        if (isTaskA && isTaskB) {
-            return priorityOrder[a.priority] - priorityOrder[b.priority];
-        }
-        
-        // Both are events, sort by start time
-        if ('startTime' in a && 'startTime' in b) {
-            return a.startTime.getTime() - b.startTime.getTime();
-        }
-
-        return 0;
+    return items.sort((a, b) => {
+      const isTaskA = 'priority' in a;
+      const isTaskB = 'priority' in b;
+  
+      if (isTaskA && !isTaskB) return -1;
+      if (!isTaskA && isTaskB) return 1;
+  
+      if (isTaskA && isTaskB) {
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      }
+  
+      if (!isTaskA && !isTaskB) { // Both are events
+        return (a as CalendarEvent).startTime.getTime() - (b as CalendarEvent).startTime.getTime();
+      }
+  
+      return 0;
     });
   }, [selectedDate, itemsByDate]);
 
