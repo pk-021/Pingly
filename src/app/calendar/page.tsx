@@ -56,6 +56,8 @@ function getEmptySlots(events: CalendarEvent[], date: Date) {
   return emptySlots.filter(slot => slot.start < slot.end);
 }
 
+const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -67,7 +69,7 @@ export default function CalendarPage() {
     async function loadData() {
       const [fetchedEvents, fetchedTasks] = await Promise.all([getEvents(), getTasks()]);
       setEvents(fetchedEvents);
-      setTasks(fetchedTasks);
+      setTasks(fetchedTasks.filter(task => !task.completed));
     }
     loadData();
   }, []);
@@ -106,9 +108,22 @@ export default function CalendarPage() {
   }, {} as Record<string, DisplayItem[]>);
 
   const selectedDayItems = (itemsByDate[format(selectedDate, 'yyyy-MM-dd')] || []).sort((a,b) => {
-      const timeA = 'startTime' in a ? a.startTime.getTime() : startOfDay(a.dueDate).getTime();
-      const timeB = 'startTime' in b ? b.startTime.getTime() : startOfDay(b.dueDate).getTime();
-      return timeA - timeB;
+      const isTaskA = 'priority' in a;
+      const isTaskB = 'priority' in b;
+
+      if (isTaskA && !isTaskB) return -1;
+      if (!isTaskA && isTaskB) return 1;
+
+      if (isTaskA && isTaskB) {
+          return priorityOrder[a.priority] - priorityOrder[b.priority];
+      }
+      
+      // Both are events, sort by start time
+      if ('startTime' in a && 'startTime' in b) {
+          return a.startTime.getTime() - b.startTime.getTime();
+      }
+
+      return 0;
   });
 
 
