@@ -6,6 +6,7 @@ export type CalendarEvent = {
   isOfficial: boolean;
   contact?: string;
   subject?: string;
+  roomNumber?: string;
 };
 
 export type Task = {

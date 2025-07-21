@@ -15,6 +15,7 @@ export const mockEvents: CalendarEvent[] = [
     isOfficial: true,
     contact: 'Prof. Alan Turing',
     subject: 'Computer Science',
+    roomNumber: 'A-101',
   },
   {
     id: '2',
@@ -24,6 +25,7 @@ export const mockEvents: CalendarEvent[] = [
     isOfficial: false,
     contact: 'Team Members',
     subject: 'Group Project',
+    roomNumber: 'Library Room 3',
   },
   {
     id: '3',
@@ -33,6 +35,7 @@ export const mockEvents: CalendarEvent[] = [
     isOfficial: true,
     contact: 'Students',
     subject: 'Advising',
+    roomNumber: 'Faculty Office 21B',
   },
   {
     id: '4',
@@ -51,6 +54,7 @@ export const mockEvents: CalendarEvent[] = [
     isOfficial: true,
     contact: 'Faculty Members',
     subject: 'Administration',
+    roomNumber: 'Conference Hall A',
   },
 ];
 
