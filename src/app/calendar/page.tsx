@@ -65,7 +65,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [emptySlots, setEmptySlots] = useState<{start: Date, end: Date}[]>([]);
-  const [today, setToday] = useState(startOfDay(new Date()));
+  const [today] = useState(startOfDay(new Date()));
 
   useEffect(() => {
     async function loadData() {
