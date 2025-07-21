@@ -12,7 +12,6 @@ import {
   LayoutDashboard,
   CalendarDays,
   Clock,
-  BotMessageSquare,
   Settings,
   User,
 } from 'lucide-react';
@@ -25,11 +24,6 @@ const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/empty-slots', label: 'Empty Slots', icon: Clock },
-  {
-    href: '/conflict-resolver',
-    label: 'Conflict Resolver',
-    icon: BotMessageSquare,
-  },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
