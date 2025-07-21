@@ -44,10 +44,7 @@ const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   priority: z.enum(['High', 'Medium', 'Low']),
   dueDate: z.date({ required_error: 'Due date is required' }),
-});
-
-const completionSchema = z.object({
-    completionNotes: z.string().optional(),
+  completionNotes: z.string().optional(),
 });
 
 
@@ -70,51 +67,38 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task }: TaskDial
       title: task?.title || '',
       priority: task?.priority || 'Medium',
       dueDate: task?.dueDate || new Date(),
+      completionNotes: task?.completionNotes || '',
     },
   });
 
-  const completionForm = useForm<z.infer<typeof completionSchema>>({
-    resolver: zodResolver(completionSchema),
-    defaultValues: {
-        completionNotes: task?.completionNotes || '',
-    }
-  });
-
-
   useEffect(() => {
-    if (task) {
-      form.reset({
-        title: task.title,
-        priority: task.priority,
-        dueDate: task.dueDate,
-      });
-      completionForm.reset({
-        completionNotes: task.completionNotes || ''
-      });
-      setAttachedPhotos(task.completionPhotos || []);
-      setIsEditing(false);
-    } else {
-      form.reset({
-        title: '',
-        priority: 'Medium',
-        dueDate: new Date(),
-      });
-      completionForm.reset({
-        completionNotes: ''
-      });
-      setAttachedPhotos([]);
-      setIsEditing(true);
+    if (isOpen) {
+        if (task) {
+          form.reset({
+            title: task.title,
+            priority: task.priority,
+            dueDate: task.dueDate,
+            completionNotes: task.completionNotes || ''
+          });
+          setAttachedPhotos(task.completionPhotos || []);
+          setIsEditing(false);
+        } else {
+          form.reset({
+            title: '',
+            priority: 'Medium',
+            dueDate: new Date(),
+            completionNotes: ''
+          });
+          setAttachedPhotos([]);
+          setIsEditing(true);
+        }
     }
-  }, [task, form, completionForm, isOpen]);
+  }, [task, isOpen, form]);
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
         const files = Array.from(event.target.files);
         const dataUrls = files.map(file => URL.createObjectURL(file));
-        // In a real app, you would upload to a server and get a URL.
-        // For now, we use data URLs for local preview.
-        // This part needs to be updated to handle actual file uploads.
-        // For simplicity, we'll just store blob URLs. A real app would convert these to base64 or upload.
         setAttachedPhotos(prev => [...prev, ...dataUrls]);
     }
   };
@@ -125,11 +109,11 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task }: TaskDial
   
   const handleMarkComplete = () => {
     if (task) {
-        const completionData = completionForm.getValues();
+        const formData = form.getValues();
         onSave({ 
             ...task,
+            ...formData,
             completed: true, 
-            completionNotes: completionData.completionNotes,
             completionPhotos: attachedPhotos,
         });
     }
@@ -236,104 +220,102 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task }: TaskDial
              </form>
            </Form>
         ) : task ? (
-            <div className="space-y-4">
-                <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Title</h3>
-                    <p className={cn(task.completed && "line-through")}>{task.title}</p>
-                </div>
-                <div className="flex gap-8">
+            <Form {...form}>
+                <div className="space-y-4">
                     <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">Due Date</h3>
-                        <p>{format(task.dueDate, 'PPP')}</p>
+                        <h3 className="text-sm font-medium text-muted-foreground">Title</h3>
+                        <p className={cn(task.completed && "line-through")}>{task.title}</p>
                     </div>
-                     <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">Priority</h3>
-                        <p>{task.priority}</p>
+                    <div className="flex gap-8">
+                        <div>
+                            <h3 className="text-sm font-medium text-muted-foreground">Due Date</h3>
+                            <p>{format(task.dueDate, 'PPP')}</p>
+                        </div>
+                         <div>
+                            <h3 className="text-sm font-medium text-muted-foreground">Priority</h3>
+                            <p>{task.priority}</p>
+                        </div>
                     </div>
-                </div>
 
-                {task.completed ? (
-                    <div className="space-y-4 pt-4 border-t">
-                        <h3 className="text-lg font-semibold">Completion Details</h3>
-                        <div>
-                            <h4 className="text-sm font-medium text-muted-foreground">Notes</h4>
-                            <p>{task.completionNotes || "No notes provided."}</p>
+                    {task.completed ? (
+                        <div className="space-y-4 pt-4 border-t">
+                            <h3 className="text-lg font-semibold">Completion Details</h3>
+                            <div>
+                                <h4 className="text-sm font-medium text-muted-foreground">Notes</h4>
+                                <p>{task.completionNotes || "No notes provided."}</p>
+                            </div>
+                            <div>
+                                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Attachments</h4>
+                                 {attachedPhotos.length > 0 ? (
+                                    <div className="flex gap-2 flex-wrap">
+                                        {attachedPhotos.map((photo, index) => (
+                                            <Image key={index} src={photo} alt={`attachment ${index+1}`} width={80} height={80} className="rounded-md object-cover" />
+                                        ))}
+                                    </div>
+                                 ) : <p>No photos attached.</p>}
+                            </div>
                         </div>
-                        <div>
-                             <h4 className="text-sm font-medium text-muted-foreground mb-2">Attachments</h4>
-                             {attachedPhotos.length > 0 ? (
-                                <div className="flex gap-2 flex-wrap">
-                                    {attachedPhotos.map((photo, index) => (
-                                        <Image key={index} src={photo} alt={`attachment ${index+1}`} width={80} height={80} className="rounded-md object-cover" />
-                                    ))}
-                                </div>
-                             ) : <p>No photos attached.</p>}
+                    ) : (
+                        <div className="space-y-4 pt-4 border-t">
+                             <h3 className="text-lg font-semibold">Mark as Complete</h3>
+                             <FormField
+                                control={form.control}
+                                name="completionNotes"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Completion Notes (Optional)</FormLabel>
+                                        <FormControl>
+                                            <Textarea placeholder="Add any notes about the task completion..." {...field} />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                            <div>
+                                 <FormLabel>Attach Photos (Optional)</FormLabel>
+                                 <div className="flex items-center gap-4 mt-2">
+                                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                                        <Paperclip className="mr-2 h-4 w-4"/>
+                                        Add Photo
+                                    </Button>
+                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} multiple accept="image/*" className="hidden" />
+                                    <span className="text-sm text-muted-foreground">{attachedPhotos.length} photo(s) attached</span>
+                                 </div>
+                                  {attachedPhotos.length > 0 && (
+                                    <div className="flex gap-2 flex-wrap mt-2">
+                                        {attachedPhotos.map((photo, index) => (
+                                            <Image key={index} src={photo} alt={`attachment ${index+1}`} width={60} height={60} className="rounded-md object-cover" />
+                                        ))}
+                                    </div>
+                                 )}
+                            </div>
                         </div>
-                    </div>
-                ) : (
-                    <div className="space-y-4 pt-4 border-t">
-                         <h3 className="text-lg font-semibold">Mark as Complete</h3>
-                         <Form {...completionForm}>
-                            <form>
-                                <FormField
-                                    control={completionForm.control}
-                                    name="completionNotes"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Completion Notes (Optional)</FormLabel>
-                                            <FormControl>
-                                                <Textarea placeholder="Add any notes about the task completion..." {...field} />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-                            </form>
-                         </Form>
-                        <div>
-                             <FormLabel>Attach Photos (Optional)</FormLabel>
-                             <div className="flex items-center gap-4 mt-2">
-                                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                                    <Paperclip className="mr-2 h-4 w-4"/>
-                                    Add Photo
+                    )}
+                    
+                    <DialogFooter>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className="mr-auto">
+                                    <Trash2 className="mr-2 h-4 w-4"/> Delete Task
                                 </Button>
-                                <input type="file" ref={fileInputRef} onChange={handleFileChange} multiple accept="image/*" className="hidden" />
-                                <span className="text-sm text-muted-foreground">{attachedPhotos.length} photo(s) attached</span>
-                             </div>
-                              {attachedPhotos.length > 0 && (
-                                <div className="flex gap-2 flex-wrap mt-2">
-                                    {attachedPhotos.map((photo, index) => (
-                                        <Image key={index} src={photo} alt={`attachment ${index+1}`} width={60} height={60} className="rounded-md object-cover" />
-                                    ))}
-                                </div>
-                             )}
-                        </div>
-                    </div>
-                )}
-                
-                <DialogFooter>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="mr-auto">
-                                <Trash2 className="mr-2 h-4 w-4"/> Delete Task
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the task.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDelete(task.id)}>Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                    <DialogClose asChild><Button type="button" variant="ghost">Close</Button></DialogClose>
-                    {!task.completed && <Button onClick={handleMarkComplete}>Mark as Complete</Button>}
-                </DialogFooter>
-            </div>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the task.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onDelete(task.id)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                        <DialogClose asChild><Button type="button" variant="ghost">Close</Button></DialogClose>
+                        {!task.completed && <Button onClick={handleMarkComplete}>Mark as Complete</Button>}
+                    </DialogFooter>
+                </div>
+            </Form>
         ) : null}
       </DialogContent>
     </Dialog>
