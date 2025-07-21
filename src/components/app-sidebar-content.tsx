@@ -1,0 +1,101 @@
+'use client';
+
+import {
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarFooter,
+  SidebarTrigger
+} from '@/components/ui/sidebar';
+import {
+  LayoutDashboard,
+  CalendarDays,
+  Clock,
+  BotMessageSquare,
+  Settings,
+  User,
+} from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+
+const navItems = [
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { href: '/empty-slots', label: 'Empty Slots', icon: Clock },
+  {
+    href: '/conflict-resolver',
+    label: 'Conflict Resolver',
+    icon: BotMessageSquare,
+  },
+  { href: '/settings', label: 'Settings', icon: Settings },
+];
+
+export function AppSidebarContent() {
+  const pathname = usePathname();
+
+  return (
+    <>
+      <SidebarHeader>
+        <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary">
+                <svg
+                className="text-primary-foreground"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                >
+                <path
+                    d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20Z"
+                    fill="currentColor"
+                />
+                <path
+                    d="M12 6C9.79 6 8 7.79 8 10C8 12.21 9.79 14 12 14C14.21 14 16 12.21 16 10C16 7.79 14.21 6 12 6ZM12 12C10.9 12 10 11.1 10 10C10 8.9 10.9 8 12 8C13.1 8 14 8.9 14 10C14 11.1 13.1 12 12 12Z"
+                    fill="currentColor"
+                />
+                </svg>
+            </div>
+            <span className="font-headline text-xl text-primary">Pingly</span>
+            <div className='grow' />
+            <SidebarTrigger className="md:hidden" />
+        </div>
+      </SidebarHeader>
+
+      <SidebarMenu className="flex-1 p-2">
+        {navItems.map((item) => (
+          <SidebarMenuItem key={item.href}>
+            <Link href={item.href} legacyBehavior passHref>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === item.href}
+                tooltip={{ children: item.label }}
+              >
+                <a>
+                  <item.icon />
+                  <span>{item.label}</span>
+                </a>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+
+      <SidebarFooter className='p-2'>
+        <Button variant="ghost" className='w-full justify-start gap-2 p-2 h-auto'>
+            <Avatar className="h-8 w-8">
+              <AvatarImage src="https://placehold.co/40x40" alt="User" data-ai-hint="profile picture" />
+              <AvatarFallback>U</AvatarFallback>
+            </Avatar>
+            <div className="text-left">
+                <p className="font-medium text-sm">Faculty User</p>
+                <p className="text-xs text-muted-foreground">user@university.edu</p>
+            </div>
+        </Button>
+      </SidebarFooter>
+    </>
+  );
+}
