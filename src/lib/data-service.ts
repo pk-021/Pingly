@@ -10,7 +10,7 @@ tomorrow.setDate(today.getDate() + 1);
 const nextWeek = new Date();
 nextWeek.setDate(today.getDate() + 7);
 
-const mockEvents: CalendarEvent[] = [
+let mockEvents: CalendarEvent[] = [
   {
     id: '1',
     title: 'CS101 Lecture',
@@ -52,7 +52,7 @@ const mockEvents: CalendarEvent[] = [
   },
 ];
 
-const mockTasks: Task[] = [
+let mockTasks: Task[] = [
   {
     id: 't1',
     title: 'Grade Midterm Exams',
@@ -80,6 +80,8 @@ const mockTasks: Task[] = [
     priority: 'Low',
     dueDate: nextWeek,
     completed: true,
+    completionNotes: 'Updated syllabus and added new lecture notes.',
+    completionPhotos: ['https://placehold.co/400x300.png']
   },
   {
     id: 't5',
@@ -93,12 +95,42 @@ const mockTasks: Task[] = [
 
 // Simulate API calls
 export async function getEvents(): Promise<CalendarEvent[]> {
-  // In the future, you could replace this with:
-  // const response = await fetch('/api/events');
-  // return await response.json();
+  await new Promise(res => setTimeout(res, 500));
   return Promise.resolve(mockEvents);
 }
 
 export async function getTasks(): Promise<Task[]> {
+  await new Promise(res => setTimeout(res, 500));
   return Promise.resolve(mockTasks);
+}
+
+export async function addTask(task: Omit<Task, 'id' | 'completed'>): Promise<Task> {
+    await new Promise(res => setTimeout(res, 300));
+    const newTask: Task = {
+        ...task,
+        id: `t${Date.now()}`,
+        completed: false,
+    };
+    mockTasks.push(newTask);
+    return Promise.resolve(newTask);
+}
+
+export async function updateTask(updatedTask: Task): Promise<Task> {
+    await new Promise(res => setTimeout(res, 300));
+    const index = mockTasks.findIndex(t => t.id === updatedTask.id);
+    if (index === -1) {
+        throw new Error("Task not found");
+    }
+    mockTasks[index] = updatedTask;
+    return Promise.resolve(updatedTask);
+}
+
+export async function deleteTask(taskId: string): Promise<{ success: true }> {
+    await new Promise(res => setTimeout(res, 300));
+    const index = mockTasks.findIndex(t => t.id === taskId);
+    if (index === -1) {
+        throw new Error("Task not found");
+    }
+    mockTasks.splice(index, 1);
+    return Promise.resolve({ success: true });
 }

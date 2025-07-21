@@ -13,6 +13,8 @@ export type Task = {
   priority: 'High' | 'Medium' | 'Low';
   dueDate: Date;
   completed: boolean;
+  completionNotes?: string;
+  completionPhotos?: string[];
 };
 
 export type DisplayItem = CalendarEvent | Task;
