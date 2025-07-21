@@ -16,6 +16,8 @@ import {
   startOfDay,
   addHours,
   isSameDay as isSameDate,
+  isToday,
+  formatDistanceToNow,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle, ListTodo } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -162,7 +164,7 @@ export default function CalendarPage() {
                 </div>
                 <div className="flex-1 overflow-y-auto -mx-2">
                   <div className="space-y-1 px-2">
-                    {(itemsByDate[format(day, 'yyyy-MM-dd')] || []).map(item => (
+                    {(itemsByDate[format(day, 'yyyy-MM-dd')] || []).slice(0, 2).map(item => (
                       <div
                         key={item.id}
                         className={cn(
@@ -175,6 +177,11 @@ export default function CalendarPage() {
                         {item.title}
                       </div>
                     ))}
+                    {(itemsByDate[format(day, 'yyyy-MM-dd')] || []).length > 2 && (
+                       <p className="text-xs text-muted-foreground truncate pl-1">
+                         {(itemsByDate[format(day, 'yyyy-MM-dd')] || []).length - 2} more...
+                       </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -224,7 +231,12 @@ export default function CalendarPage() {
                                     </div>
                                     <div className="flex-1">
                                         <h3 className="font-semibold">{item.title}</h3>
-                                        <p className="text-sm text-muted-foreground">Task due today</p>
+                                        <p className="text-sm text-muted-foreground">
+                                          {isToday(item.dueDate)
+                                            ? `Due ${formatDistanceToNow(item.dueDate, { addSuffix: true })}`
+                                            : `Due on ${format(item.dueDate, 'MMM d')}`
+                                          }
+                                        </p>
                                     </div>
                                     <Badge variant={item.priority === 'High' ? 'destructive' : item.priority === 'Medium' ? 'secondary' : 'outline'}>{item.priority}</Badge>
                                 </div>
