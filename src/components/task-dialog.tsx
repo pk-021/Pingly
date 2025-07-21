@@ -257,7 +257,6 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task }: TaskDial
                         </div>
                     ) : (
                         <div className="space-y-4 pt-4 border-t">
-                             <h3 className="text-lg font-semibold">Mark as Complete</h3>
                              <FormField
                                 control={form.control}
                                 name="completionNotes"
