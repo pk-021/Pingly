@@ -16,7 +16,6 @@ import {
   startOfDay,
   addHours,
   isSameDay as isSameDate,
-  isToday as isActuallyToday,
   formatDistanceToNow,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle, ListTodo } from 'lucide-react';
@@ -60,17 +59,13 @@ const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [emptySlots, setEmptySlots] = useState<{start: Date, end: Date}[]>([]);
-  const [today, setToday] = useState(new Date());
+  const [today, setToday] = useState(startOfDay(new Date()));
 
   useEffect(() => {
-    // This ensures that 'today' is only set once on component mount,
-    // providing a stable reference for date comparisons.
-    setToday(startOfDay(new Date()));
-
     async function loadData() {
       const [fetchedEvents, fetchedTasks] = await Promise.all([getEvents(), getTasks()]);
       setEvents(fetchedEvents);
@@ -124,7 +119,7 @@ export default function CalendarPage() {
         const isTaskB = 'priority' in b;
 
         if (isTaskA && !isTaskB) return -1;
-        if (!isTaskA && isTaskB) return 1;
+        if (!isTaskB && isTaskA) return 1;
 
         if (isTaskA && isTaskB) {
             return priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -152,7 +147,7 @@ export default function CalendarPage() {
               <Button variant="outline" size="icon" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button variant="outline" onClick={() => { setCurrentDate(new Date()); setSelectedDate(new Date()); }}>
+              <Button variant="outline" onClick={() => { setCurrentDate(new Date()); setSelectedDate(startOfDay(new Date())); }}>
                 Today
               </Button>
               <Button variant="outline" size="icon" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
