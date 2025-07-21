@@ -4,7 +4,6 @@ export type CalendarEvent = {
   startTime: Date;
   endTime: Date;
   isOfficial: boolean;
-  contact?: string;
   subject?: string;
   roomNumber?: string;
 };

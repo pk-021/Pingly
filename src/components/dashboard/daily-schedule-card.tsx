@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { mockEvents } from "@/lib/mock-data";
 import type { CalendarEvent } from "@/lib/types";
 import { isToday, format } from 'date-fns';
-import { User, Mail, ArrowRight, CalendarClock, Pin, Book } from "lucide-react";
+import { CalendarClock, Pin, Book } from "lucide-react";
 import { Badge } from "../ui/badge";
 
 export default function DailyScheduleCard() {
@@ -43,12 +43,6 @@ export default function DailyScheduleCard() {
                                       </div>
                                       {event.isOfficial && <Badge variant="outline">Official</Badge>}
                                     </div>
-                                    {event.contact && (
-                                        <p className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
-                                            <User className="w-4 h-4" />
-                                            {event.contact}
-                                        </p>
-                                    )}
                                 </div>
                             </div>
                         ))}
