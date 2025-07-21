@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   format,
   startOfMonth,
@@ -102,36 +102,42 @@ export default function CalendarPage() {
     days.length = 42;
   }
   
-  const itemsByDate = [...events, ...tasks].reduce((acc, item) => {
-    const date = 'startTime' in item ? item.startTime : item.dueDate;
-    if (date) {
-        const dateKey = format(date, 'yyyy-MM-dd');
-        if (!acc[dateKey]) {
-        acc[dateKey] = [];
+  const itemsByDate = useMemo(() => {
+    return [...events, ...tasks].reduce((acc, item) => {
+        const date = 'startTime' in item ? item.startTime : item.dueDate;
+        if (date) {
+            const dateKey = format(date, 'yyyy-MM-dd');
+            if (!acc[dateKey]) {
+            acc[dateKey] = [];
+            }
+            acc[dateKey].push(item as DisplayItem);
         }
-        acc[dateKey].push(item as DisplayItem);
-    }
-    return acc;
-  }, {} as Record<string, DisplayItem[]>);
+        return acc;
+    }, {} as Record<string, DisplayItem[]>);
+  }, [events, tasks]);
 
-  const selectedDayItems = (itemsByDate[format(selectedDate, 'yyyy-MM-dd')] || []).sort((a,b) => {
-      const isTaskA = 'priority' in a;
-      const isTaskB = 'priority' in b;
 
-      if (isTaskA && !isTaskB) return -1;
-      if (!isTaskA && isTaskB) return 1;
+  const selectedDayItems = useMemo(() => {
+    const items = itemsByDate[format(selectedDate, 'yyyy-MM-dd')] || [];
+    return items.sort((a,b) => {
+        const isTaskA = 'priority' in a;
+        const isTaskB = 'priority' in b;
 
-      if (isTaskA && isTaskB) {
-          return priorityOrder[a.priority] - priorityOrder[b.priority];
-      }
-      
-      // Both are events, sort by start time
-      if ('startTime' in a && 'startTime' in b) {
-          return a.startTime.getTime() - b.startTime.getTime();
-      }
+        if (isTaskA && !isTaskB) return -1;
+        if (!isTaskA && isTaskB) return 1;
 
-      return 0;
-  });
+        if (isTaskA && isTaskB) {
+            return priorityOrder[a.priority] - priorityOrder[b.priority];
+        }
+        
+        // Both are events, sort by start time
+        if ('startTime' in a && 'startTime' in b) {
+            return a.startTime.getTime() - b.startTime.getTime();
+        }
+
+        return 0;
+    });
+  }, [selectedDate, itemsByDate]);
 
 
   return (
