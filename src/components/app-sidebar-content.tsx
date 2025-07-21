@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -60,16 +61,13 @@ export function AppSidebarContent() {
       <SidebarMenu className="flex-1 p-2">
         {navItems.map((item) => (
           <SidebarMenuItem key={item.href}>
-            <Link href={item.href} legacyBehavior passHref>
+            <Link href={item.href}>
               <SidebarMenuButton
-                asChild
                 isActive={pathname === item.href}
                 tooltip={{ children: item.label }}
               >
-                <a>
-                  <item.icon />
-                  <span>{item.label}</span>
-                </a>
+                <item.icon />
+                <span>{item.label}</span>
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
