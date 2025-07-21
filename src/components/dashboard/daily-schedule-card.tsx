@@ -1,13 +1,24 @@
+
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockEvents } from "@/lib/mock-data";
+import { getEvents } from "@/lib/data-service";
 import type { CalendarEvent } from "@/lib/types";
 import { isToday, format } from 'date-fns';
 import { CalendarClock, Pin } from "lucide-react";
 import { Badge } from "../ui/badge";
+import { useEffect, useState } from "react";
 
 export default function DailyScheduleCard() {
-    const todayEvents = mockEvents.filter(event => isToday(event.startTime)).sort((a,b) => a.startTime.getTime() - b.startTime.getTime());
+    const [todayEvents, setTodayEvents] = useState<CalendarEvent[]>([]);
+
+    useEffect(() => {
+        async function loadData() {
+            const events = await getEvents();
+            const filtered = events.filter(event => isToday(event.startTime)).sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+            setTodayEvents(filtered);
+        }
+        loadData();
+    }, []);
 
     return (
         <Card>

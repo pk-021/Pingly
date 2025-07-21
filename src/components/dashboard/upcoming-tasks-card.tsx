@@ -1,7 +1,8 @@
+
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockTasks } from "@/lib/mock-data";
+import { getTasks } from "@/lib/data-service";
 import type { Task } from "@/lib/types";
 import { formatDistanceToNow } from 'date-fns';
 import { ListTodo, CheckCircle2, Circle, ChevronUp, ChevronDown, Equal } from "lucide-react";
@@ -16,15 +17,24 @@ const priorityIcons = {
 };
 
 export default function UpcomingTasksCard() {
+    const [tasks, setTasks] = useState<Task[]>([]);
     const [filter, setFilter] = useState<'all' | 'High' | 'Medium' | 'Low'>('all');
 
+    useEffect(() => {
+        async function loadData() {
+            const fetchedTasks = await getTasks();
+            setTasks(fetchedTasks);
+        }
+        loadData();
+    }, []);
+
     const filteredTasks = useMemo(() => {
-        const upcoming = mockTasks.filter(task => !task.completed);
+        const upcoming = tasks.filter(task => !task.completed);
         if (filter === 'all') {
             return upcoming;
         }
         return upcoming.filter(task => task.priority === filter);
-    }, [filter]);
+    }, [filter, tasks]);
 
     return (
         <Card>

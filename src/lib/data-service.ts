@@ -1,6 +1,8 @@
-// This file is deprecated. Please use src/lib/data-service.ts instead.
 
 import type { CalendarEvent, Task } from './types';
+
+// In a real application, this data would be fetched from a database or API.
+// For now, we'll use mock data.
 
 const today = new Date();
 const tomorrow = new Date();
@@ -8,7 +10,7 @@ tomorrow.setDate(today.getDate() + 1);
 const nextWeek = new Date();
 nextWeek.setDate(today.getDate() + 7);
 
-export const mockEvents: CalendarEvent[] = [
+const mockEvents: CalendarEvent[] = [
   {
     id: '1',
     title: 'CS101 Lecture',
@@ -20,7 +22,7 @@ export const mockEvents: CalendarEvent[] = [
   {
     id: '2',
     title: 'Project Phoenix Meeting',
-    startTime: new Date(new Date().setHours(10, 0, 0, 0)), // Conflict with CS101
+    startTime: new Date(new Date().setHours(10, 0, 0, 0)),
     endTime: new Date(new Date().setHours(11, 0, 0, 0)),
     isOfficial: false,
     roomNumber: 'Library Room 3',
@@ -40,7 +42,7 @@ export const mockEvents: CalendarEvent[] = [
     endTime: new Date(new Date(tomorrow).setHours(12, 0, 0, 0)),
     isOfficial: false,
   },
-    {
+  {
     id: '5',
     title: 'Faculty Board Meeting',
     startTime: new Date(new Date(tomorrow).setHours(15, 0, 0, 0)),
@@ -50,8 +52,7 @@ export const mockEvents: CalendarEvent[] = [
   },
 ];
 
-
-export const mockTasks: Task[] = [
+const mockTasks: Task[] = [
   {
     id: 't1',
     title: 'Grade Midterm Exams',
@@ -88,3 +89,16 @@ export const mockTasks: Task[] = [
     completed: false,
   }
 ];
+
+
+// Simulate API calls
+export async function getEvents(): Promise<CalendarEvent[]> {
+  // In the future, you could replace this with:
+  // const response = await fetch('/api/events');
+  // return await response.json();
+  return Promise.resolve(mockEvents);
+}
+
+export async function getTasks(): Promise<Task[]> {
+  return Promise.resolve(mockTasks);
+}

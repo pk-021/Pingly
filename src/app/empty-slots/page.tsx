@@ -1,17 +1,20 @@
 
+'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, CheckCircle } from "lucide-react";
-import { mockEvents } from "@/lib/mock-data";
+import { getEvents } from "@/lib/data-service";
+import type { CalendarEvent } from "@/lib/types";
 import { format, startOfDay, endOfDay, addHours, isSameDay } from "date-fns";
+import { useEffect, useState } from "react";
 
 const workingHours = { start: 9, end: 17 }; // 9 AM to 5 PM
 
-function getEmptySlots() {
+function getEmptySlots(events: CalendarEvent[]) {
   const today = new Date();
   const startOfWorkDay = addHours(startOfDay(today), workingHours.start);
   const endOfWorkDay = addHours(startOfDay(today), workingHours.end);
 
-  const todaysEvents = mockEvents
+  const todaysEvents = events
     .filter(event => isSameDay(event.startTime, today))
     .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 
@@ -33,7 +36,16 @@ function getEmptySlots() {
 }
 
 export default function EmptySlotsPage() {
-  const slots = getEmptySlots();
+  const [slots, setSlots] = useState<{start: Date, end: Date}[]>([]);
+
+  useEffect(() => {
+    async function loadData() {
+      const events = await getEvents();
+      setSlots(getEmptySlots(events));
+    }
+    loadData();
+  }, [])
+  
 
   return (
     <div className="space-y-8">

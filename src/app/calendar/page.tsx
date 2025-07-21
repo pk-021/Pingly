@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   format,
   startOfMonth,
@@ -13,13 +13,12 @@ import {
   isSameDay,
   addMonths,
   subMonths,
-  eachWeekOfInterval,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Pin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { mockEvents } from '@/lib/mock-data';
+import { getEvents } from '@/lib/data-service';
 import { cn } from '@/lib/utils';
 import type { CalendarEvent } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -27,16 +26,19 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+
+  useEffect(() => {
+    async function loadData() {
+      const fetchedEvents = await getEvents();
+      setEvents(fetchedEvents);
+    }
+    loadData();
+  }, []);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
 
-  // Always render 6 weeks to keep the calendar height consistent
-  const calendarWeeks = eachWeekOfInterval({
-    start: monthStart,
-    end: monthEnd,
-  }, { weekStartsOn: 0 }); // 0 for Sunday
-  
   const firstDay = startOfWeek(startOfMonth(currentDate));
   const lastDay = endOfWeek(endOfMonth(currentDate));
 
@@ -52,8 +54,7 @@ export default function CalendarPage() {
     days.length = 42;
   }
   
-
-  const eventsByDate = mockEvents.reduce((acc, event) => {
+  const eventsByDate = events.reduce((acc, event) => {
     const dateKey = format(event.startTime, 'yyyy-MM-dd');
     if (!acc[dateKey]) {
       acc[dateKey] = [];
