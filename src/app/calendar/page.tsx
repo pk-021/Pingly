@@ -171,18 +171,22 @@ export default function CalendarPage() {
         const isTaskA = 'priority' in a;
         const isTaskB = 'priority' in b;
     
+        // Tasks always come before events
         if (isTaskA && !isTaskB) return -1;
         if (!isTaskA && isTaskB) return 1;
     
+        // If both are tasks, sort by completion status then priority
         if (isTaskA && isTaskB) {
           if (a.completed && !b.completed) return 1;
           if (!a.completed && b.completed) return -1;
           return priorityOrder[a.priority] - priorityOrder[b.priority];
         }
     
+        // If both are events, sort by start time
         if (!isTaskA && !isTaskB) {
           return (a as CalendarEvent).startTime.getTime() - (b as CalendarEvent).startTime.getTime();
         }
+    
         return 0;
       });
     }
@@ -212,8 +216,9 @@ export default function CalendarPage() {
                 {format(currentDate, 'MMMM yyyy')}
               </h2>
               <div className="flex items-center gap-2">
-                 <Button variant="outline" size="icon" onClick={handleAddTaskClick}>
-                    <PlusCircle className="h-4 w-4" />
+                 <Button onClick={handleAddTaskClick}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Task
                 </Button>
                 <Button variant="outline" size="icon" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
                   <ChevronLeft className="h-4 w-4" />

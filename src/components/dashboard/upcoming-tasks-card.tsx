@@ -1,7 +1,7 @@
 
 'use client';
 import { useState, useMemo, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { getTasks, updateTask, addTask, deleteTask } from "@/lib/data-service";
 import type { Task } from "@/lib/types";
 import { formatDistanceToNow } from 'date-fns';
@@ -96,7 +96,7 @@ export default function UpcomingTasksCard() {
                 onDelete={handleTaskDelete}
                 task={selectedTask}
             />
-            <Card>
+            <Card className="flex flex-col h-full">
                 <CardHeader>
                     <div className="flex justify-between items-start">
                         <div className="flex-1">
@@ -106,24 +106,19 @@ export default function UpcomingTasksCard() {
                             </CardTitle>
                             <CardDescription>Your tasks and deadlines.</CardDescription>
                         </div>
-                        <div className="flex items-center gap-2">
-                             <Button variant="ghost" size="icon" onClick={handleAddTaskClick}>
-                                <PlusCircle className="h-5 w-5" />
-                            </Button>
-                            <Select value={filter} onValueChange={(value) => setFilter(value as any)}>
-                                <SelectTrigger className="w-[130px]">
-                                    <SelectValue placeholder="Filter" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="upcoming">Upcoming</SelectItem>
-                                    <SelectItem value="completed">Completed</SelectItem>
-                                    <SelectItem value="all">All</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        <Select value={filter} onValueChange={(value) => setFilter(value as any)}>
+                            <SelectTrigger className="w-[130px]">
+                                <SelectValue placeholder="Filter" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="upcoming">Upcoming</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                                <SelectItem value="all">All</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1">
                     {isLoading ? (
                         <div className="space-y-3">
                             <Skeleton className="h-16 w-full" />
@@ -157,6 +152,12 @@ export default function UpcomingTasksCard() {
                         </div>
                     )}
                 </CardContent>
+                <CardFooter>
+                     <Button onClick={handleAddTaskClick} className="w-full">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add New Task
+                    </Button>
+                </CardFooter>
             </Card>
         </>
     );

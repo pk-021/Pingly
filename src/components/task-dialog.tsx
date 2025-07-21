@@ -42,6 +42,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
   priority: z.enum(['High', 'Medium', 'Low']),
   dueDate: z.date({ required_error: 'Due date is required' }),
   completionNotes: z.string().optional(),
@@ -64,10 +65,11 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task }: TaskDial
   const form = useForm<z.infer<typeof taskSchema>>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
-      title: task?.title || '',
-      priority: task?.priority || 'Medium',
-      dueDate: task?.dueDate || new Date(),
-      completionNotes: task?.completionNotes || '',
+      title: '',
+      description: '',
+      priority: 'Medium',
+      dueDate: new Date(),
+      completionNotes: '',
     },
   });
 
@@ -76,6 +78,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task }: TaskDial
         if (task) {
           form.reset({
             title: task.title,
+            description: task.description || '',
             priority: task.priority,
             dueDate: task.dueDate,
             completionNotes: task.completionNotes || ''
@@ -85,6 +88,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task }: TaskDial
         } else {
           form.reset({
             title: '',
+            description: '',
             priority: 'Medium',
             dueDate: new Date(),
             completionNotes: ''
@@ -149,6 +153,19 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task }: TaskDial
                    </FormItem>
                  )}
                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Add more details about the task..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                <div className="flex gap-4">
                  <FormField
                    control={form.control}
@@ -226,6 +243,14 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task }: TaskDial
                         <h3 className="text-sm font-medium text-muted-foreground">Title</h3>
                         <p className={cn(task.completed && "line-through")}>{task.title}</p>
                     </div>
+
+                    {task.description && (
+                         <div>
+                            <h3 className="text-sm font-medium text-muted-foreground">Description</h3>
+                            <p className="text-sm">{task.description}</p>
+                        </div>
+                    )}
+
                     <div className="flex gap-8">
                         <div>
                             <h3 className="text-sm font-medium text-muted-foreground">Due Date</h3>

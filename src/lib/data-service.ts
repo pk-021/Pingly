@@ -56,6 +56,7 @@ let mockTasks: Task[] = [
   {
     id: 't1',
     title: 'Grade Midterm Exams',
+    description: 'Go through all the papers from the CS101 midterm exam and upload the grades to the portal.',
     priority: 'High',
     dueDate: tomorrow,
     completed: false,
@@ -63,6 +64,7 @@ let mockTasks: Task[] = [
   {
     id: 't2',
     title: 'Prepare slides for CS202',
+    description: 'Create a new presentation for the upcoming lecture on Advanced Algorithms.',
     priority: 'Medium',
     dueDate: nextWeek,
     completed: false,
@@ -70,6 +72,7 @@ let mockTasks: Task[] = [
   {
     id: 't3',
     title: 'Submit research paper draft',
+    description: 'Finalize the draft for the paper on "Quantum Computing Applications" and submit it to the journal.',
     priority: 'High',
     dueDate: new Date(new Date().setDate(today.getDate() + 3)),
     completed: false,
@@ -77,6 +80,7 @@ let mockTasks: Task[] = [
   {
     id: 't4',
     title: 'Update course website',
+    description: 'Upload the latest syllabus and add the new lecture notes for week 5.',
     priority: 'Low',
     dueDate: nextWeek,
     completed: true,
@@ -86,6 +90,7 @@ let mockTasks: Task[] = [
   {
     id: 't5',
     title: 'Review student applications',
+    description: 'Go through the new applications for the research assistant position.',
     priority: 'Medium',
     dueDate: new Date(new Date().setDate(today.getDate() + 5)),
     completed: false,
