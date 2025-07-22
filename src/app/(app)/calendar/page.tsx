@@ -118,7 +118,6 @@ export default function CalendarPage() {
   }
 
   const monthStart = startOfMonth(currentDate);
-  const firstDay = startOfWeek(monthStart);
   
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(currentDate));
@@ -200,7 +199,7 @@ export default function CalendarPage() {
         tasks={tasks}
       />
       <div className="flex flex-col lg:flex-row gap-8 h-full w-full">
-        <div className="flex-1 flex flex-col h-full w-full">
+        <div className="flex-1 flex flex-col h-full">
           <Card className="flex-1 flex flex-col">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -297,7 +296,7 @@ export default function CalendarPage() {
             </CardContent>
           </Card>
         </div>
-        <div className="w-full lg:w-1/3 flex-shrink-0">
+        <div className="w-full lg:w-[400px] lg:max-w-[40%] flex-shrink-0">
           <Card className="sticky top-6">
             <CardHeader>
               <CardTitle>Schedule for {format(selectedDate, 'MMMM d')}</CardTitle>
@@ -422,5 +421,3 @@ export default function CalendarPage() {
     </TooltipProvider>
   );
 }
-
-    
