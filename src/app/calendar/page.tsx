@@ -132,6 +132,11 @@ export default function CalendarPage() {
     setSelectedTask(task);
     setIsTaskDialogOpen(true);
   }
+  
+  const handleAppointmentClick = (event: CalendarEvent) => {
+      // In the future, this could open a dialog to edit appointments.
+      // For now, we only edit tasks.
+  }
 
   const handleAddTaskClick = () => {
     setSelectedTask(undefined);
@@ -351,28 +356,34 @@ export default function CalendarPage() {
                           </h3>
                            {selectedDayUserItems.length > 0 ? (
                             selectedDayUserItems.map(item => {
+                                const isTask = 'priority' in item;
+                                const isClickable = isTask || ('isOfficial' in item && !item.isOfficial);
+                                
                                 if ('startTime' in item && item.startTime && 'endTime' in item && item.endTime) { // It's an event or a scheduled task
                                     return (
-                                        <div key={item.id} className="flex gap-4 p-4 mb-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors"
-                                          onClick={() => 'priority' in item ? handleTaskClick(item as Task) : null}
+                                        <div key={item.id} className={cn("flex gap-4 p-4 mb-3 rounded-lg border bg-card", isClickable && "hover:bg-secondary/50 transition-colors cursor-pointer")}
+                                          onClick={() => {
+                                            if (isTask) handleTaskClick(item as Task);
+                                            else if (isClickable) handleAppointmentClick(item as CalendarEvent);
+                                          }}
                                         >
-                                        <div className="font-semibold text-sm text-center">
-                                            <p>{format(item.startTime, 'HH:mm')}</p>
-                                            <p className="text-muted-foreground">-</p>
-                                            <p>{format(item.endTime, 'HH:mm')}</p>
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-start">
-                                            <div>
-                                                <h3 className="font-semibold">{item.title}</h3>
-                                                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                                                {'roomNumber' in item && item.roomNumber && (
-                                                    <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {item.roomNumber}</span>
-                                                )}
-                                                </div>
-                                            </div>
-                                            </div>
-                                        </div>
+                                          <div className="font-semibold text-sm text-center">
+                                              <p>{format(item.startTime, 'HH:mm')}</p>
+                                              <p className="text-muted-foreground">-</p>
+                                              <p>{format(item.endTime, 'HH:mm')}</p>
+                                          </div>
+                                          <div className="flex-1">
+                                              <div className="flex justify-between items-start">
+                                              <div>
+                                                  <h3 className="font-semibold">{item.title}</h3>
+                                                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                                                  {'roomNumber' in item && item.roomNumber && (
+                                                      <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {item.roomNumber}</span>
+                                                  )}
+                                                  </div>
+                                              </div>
+                                              </div>
+                                          </div>
                                         </div>
                                     );
                                 } else { // It's a task without a specific time
@@ -444,3 +455,5 @@ export default function CalendarPage() {
     </>
   );
 }
+
+    

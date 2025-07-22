@@ -9,6 +9,7 @@ import { Badge } from "../ui/badge";
 import { useEffect, useState, useMemo } from "react";
 import { Separator } from "../ui/separator";
 import { Skeleton } from "../ui/skeleton";
+import { cn } from "@/lib/utils";
 
 export default function DailyScheduleCard() {
     const [userEvents, setUserEvents] = useState<CalendarEvent[]>([]);
@@ -96,7 +97,7 @@ export default function DailyScheduleCard() {
                                 </h3>
                                 <div className="space-y-4">
                                     {todayUserEvents.map(event => (
-                                        <div key={event.id} className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-secondary/50 transition-colors">
+                                        <div key={event.id} className={cn("flex gap-4 p-4 rounded-lg border bg-card", !event.isOfficial && "hover:bg-secondary/50 transition-colors cursor-pointer")}>
                                             <div className="flex flex-col items-center w-16 text-center">
                                                 <p className="font-semibold text-base">{format(event.startTime, 'HH:mm')}</p>
                                                 <div className="h-4 w-px bg-border my-1"></div>
@@ -124,3 +125,5 @@ export default function DailyScheduleCard() {
         </Card>
     );
 }
+
+    
