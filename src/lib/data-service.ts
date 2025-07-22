@@ -45,6 +45,7 @@ let mockTasks: Task[] = [
     dueDate: today,
     startTime: new Date(new Date().setHours(16, 0, 0, 0)),
     endTime: new Date(new Date().setHours(17, 0, 0, 0)),
+    roomNumber: 'Faculty Office 21B',
     completed: false,
   },
   {
@@ -100,6 +101,7 @@ let mockTasks: Task[] = [
     dueDate: tomorrow,
     startTime: new Date(new Date(tomorrow).setHours(11, 0, 0, 0)),
     endTime: new Date(new Date(tomorrow).setHours(12, 0, 0, 0)),
+    roomNumber: 'Dental Clinic, City Center',
     completed: false,
   },
 ];
