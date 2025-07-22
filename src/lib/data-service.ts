@@ -1,5 +1,6 @@
 
 import type { CalendarEvent, Task } from './types';
+import { getDay } from 'date-fns';
 
 // In a real application, this data would be fetched from a database or API.
 // For now, we'll use mock data.
@@ -10,7 +11,7 @@ tomorrow.setDate(today.getDate() + 1);
 const nextWeek = new Date();
 nextWeek.setDate(today.getDate() + 7);
 
-const classRoutine: CalendarEvent[] = [
+let classRoutine: CalendarEvent[] = [
   {
     id: 'cr1',
     title: 'CS101 Lecture',
@@ -106,6 +107,9 @@ let mockTasks: Task[] = [
 // Simulate API calls
 export async function getClassRoutine(): Promise<CalendarEvent[]> {
     await new Promise(res => setTimeout(res, 500));
+    // Simulate weekly routine by filtering based on day of the week
+    const dayOfWeek = getDay(new Date());
+    const routineForToday = classRoutine.filter(event => getDay(event.startTime) === dayOfWeek);
     return Promise.resolve(classRoutine);
 }
 export async function getUserEvents(): Promise<CalendarEvent[]> {
@@ -184,5 +188,36 @@ export async function deleteTask(taskId: string): Promise<{ success: true }> {
         userEvents.splice(eventIndex, 1);
     }
 
+    return Promise.resolve({ success: true });
+}
+
+export async function addRoutineEvent(event: Omit<CalendarEvent, 'id' | 'isOfficial'>): Promise<CalendarEvent> {
+    await new Promise(res => setTimeout(res, 300));
+    const newEvent: CalendarEvent = {
+        ...event,
+        id: `cr${Date.now()}`,
+        isOfficial: true,
+    };
+    classRoutine.push(newEvent);
+    return Promise.resolve(newEvent);
+}
+
+export async function updateRoutineEvent(updatedEvent: CalendarEvent): Promise<CalendarEvent> {
+    await new Promise(res => setTimeout(res, 300));
+    const index = classRoutine.findIndex(e => e.id === updatedEvent.id);
+    if (index === -1) {
+        throw new Error("Event not found");
+    }
+    classRoutine[index] = updatedEvent;
+    return Promise.resolve(updatedEvent);
+}
+
+export async function deleteRoutineEvent(eventId: string): Promise<{ success: true }> {
+    await new Promise(res => setTimeout(res, 300));
+    const index = classRoutine.findIndex(e => e.id === eventId);
+    if (index === -1) {
+        throw new Error("Event not found");
+    }
+    classRoutine.splice(index, 1);
     return Promise.resolve({ success: true });
 }
