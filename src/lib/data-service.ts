@@ -10,9 +10,9 @@ tomorrow.setDate(today.getDate() + 1);
 const nextWeek = new Date();
 nextWeek.setDate(today.getDate() + 7);
 
-let mockEvents: CalendarEvent[] = [
+const classRoutine: CalendarEvent[] = [
   {
-    id: '1',
+    id: 'cr1',
     title: 'CS101 Lecture',
     startTime: new Date(new Date().setHours(9, 0, 0, 0)),
     endTime: new Date(new Date().setHours(10, 30, 0, 0)),
@@ -20,15 +20,7 @@ let mockEvents: CalendarEvent[] = [
     roomNumber: 'A-101',
   },
   {
-    id: '2',
-    title: 'Project Phoenix Meeting',
-    startTime: new Date(new Date().setHours(11, 0, 0, 0)),
-    endTime: new Date(new Date().setHours(12, 0, 0, 0)),
-    isOfficial: false,
-    roomNumber: 'Library Room 3',
-  },
-  {
-    id: '3',
+    id: 'cr2',
     title: 'Office Hours',
     startTime: new Date(new Date().setHours(14, 0, 0, 0)),
     endTime: new Date(new Date().setHours(16, 0, 0, 0)),
@@ -36,19 +28,30 @@ let mockEvents: CalendarEvent[] = [
     roomNumber: 'Faculty Office 21B',
   },
   {
-    id: '4',
-    title: 'Dentist Appointment',
-    startTime: new Date(new Date(tomorrow).setHours(11, 0, 0, 0)),
-    endTime: new Date(new Date(tomorrow).setHours(12, 0, 0, 0)),
-    isOfficial: false,
-  },
-  {
-    id: '5',
+    id: 'cr3',
     title: 'Faculty Board Meeting',
     startTime: new Date(new Date(tomorrow).setHours(15, 0, 0, 0)),
     endTime: new Date(new Date(tomorrow).setHours(16, 30, 0, 0)),
     isOfficial: true,
     roomNumber: 'Conference Hall A',
+  },
+];
+
+let userEvents: CalendarEvent[] = [
+  {
+    id: 'ue1',
+    title: 'Project Phoenix Meeting',
+    startTime: new Date(new Date().setHours(11, 0, 0, 0)),
+    endTime: new Date(new Date().setHours(12, 0, 0, 0)),
+    isOfficial: false,
+    roomNumber: 'Library Room 3',
+  },
+  {
+    id: 'ue2',
+    title: 'Dentist Appointment',
+    startTime: new Date(new Date(tomorrow).setHours(11, 0, 0, 0)),
+    endTime: new Date(new Date(tomorrow).setHours(12, 0, 0, 0)),
+    isOfficial: false,
   },
 ];
 
@@ -101,9 +104,13 @@ let mockTasks: Task[] = [
 
 
 // Simulate API calls
-export async function getEvents(): Promise<CalendarEvent[]> {
+export async function getClassRoutine(): Promise<CalendarEvent[]> {
+    await new Promise(res => setTimeout(res, 500));
+    return Promise.resolve(classRoutine);
+}
+export async function getUserEvents(): Promise<CalendarEvent[]> {
   await new Promise(res => setTimeout(res, 500));
-  return Promise.resolve(mockEvents);
+  return Promise.resolve(userEvents);
 }
 
 export async function getTasks(): Promise<Task[]> {
@@ -120,7 +127,8 @@ export async function addTask(task: Omit<Task, 'id' | 'completed'>): Promise<Tas
     };
     mockTasks.push(newTask);
     if(newTask.startTime && newTask.endTime) {
-        mockEvents.push({
+        // We add scheduled tasks to userEvents for conflict detection
+        userEvents.push({
             id: `evt-${newTask.id}`,
             title: newTask.title,
             startTime: newTask.startTime,
@@ -137,11 +145,10 @@ export async function updateTask(updatedTask: Task): Promise<Task> {
     if (index === -1) {
         throw new Error("Task not found");
     }
-    const oldTask = mockTasks[index];
     mockTasks[index] = updatedTask;
 
     const eventId = `evt-${updatedTask.id}`;
-    const eventIndex = mockEvents.findIndex(e => e.id === eventId);
+    const eventIndex = userEvents.findIndex(e => e.id === eventId);
     
     if (updatedTask.startTime && updatedTask.endTime) {
         const newEvent = {
@@ -152,12 +159,12 @@ export async function updateTask(updatedTask: Task): Promise<Task> {
             isOfficial: false
         };
         if (eventIndex > -1) {
-            mockEvents[eventIndex] = newEvent;
+            userEvents[eventIndex] = newEvent;
         } else {
-            mockEvents.push(newEvent);
+            userEvents.push(newEvent);
         }
     } else if (eventIndex > -1) {
-        mockEvents.splice(eventIndex, 1);
+        userEvents.splice(eventIndex, 1);
     }
 
     return Promise.resolve(updatedTask);
@@ -172,9 +179,9 @@ export async function deleteTask(taskId: string): Promise<{ success: true }> {
     mockTasks.splice(index, 1);
 
     const eventId = `evt-${taskId}`;
-    const eventIndex = mockEvents.findIndex(e => e.id === eventId);
+    const eventIndex = userEvents.findIndex(e => e.id === eventId);
     if (eventIndex > -1) {
-        mockEvents.splice(eventIndex, 1);
+        userEvents.splice(eventIndex, 1);
     }
 
     return Promise.resolve({ success: true });

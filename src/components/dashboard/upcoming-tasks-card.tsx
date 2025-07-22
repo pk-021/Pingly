@@ -2,7 +2,7 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { getTasks, updateTask, addTask, deleteTask, getEvents } from "@/lib/data-service";
+import { getTasks, updateTask, addTask, deleteTask, getUserEvents, getClassRoutine } from "@/lib/data-service";
 import type { Task, CalendarEvent } from "@/lib/types";
 import { formatDistanceToNow, format } from 'date-fns';
 import { ListTodo, CheckCircle2, Circle, ChevronUp, ChevronDown, Equal, PlusCircle, Clock } from "lucide-react";
@@ -31,9 +31,9 @@ export default function UpcomingTasksCard() {
 
     const loadData = async () => {
         setIsLoading(true);
-        const [fetchedTasks, fetchedEvents] = await Promise.all([getTasks(), getEvents()]);
+        const [fetchedTasks, fetchedUserEvents, fetchedClassRoutine] = await Promise.all([getTasks(), getUserEvents(), getClassRoutine()]);
         setTasks(fetchedTasks.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime()));
-        setEvents(fetchedEvents);
+        setEvents([...fetchedUserEvents, ...fetchedClassRoutine]);
         setIsLoading(false);
     };
 

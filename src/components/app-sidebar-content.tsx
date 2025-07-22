@@ -14,6 +14,7 @@ import {
   CalendarDays,
   Settings,
   User,
+  BookOpen,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -23,6 +24,7 @@ import { Button } from '@/components/ui/button';
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { href: '/class-routine', label: 'Class Routine', icon: BookOpen },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 

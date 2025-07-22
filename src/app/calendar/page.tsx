@@ -18,11 +18,11 @@ import {
   isSameDay as isSameDate,
   formatDistanceToNow,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle, ListTodo, PlusCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle, ListTodo, PlusCircle, CalendarCheck, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getEvents, getTasks, addTask, updateTask, deleteTask } from '@/lib/data-service';
+import { getUserEvents, getTasks, addTask, updateTask, deleteTask, getClassRoutine } from '@/lib/data-service';
 import { cn } from '@/lib/utils';
 import type { CalendarEvent, Task, DisplayItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -64,7 +64,8 @@ export default function CalendarPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [userEvents, setUserEvents] = useState<CalendarEvent[]>([]);
+  const [classRoutine, setClassRoutine] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [emptySlots, setEmptySlots] = useState<{start: Date, end: Date}[]>([]);
   const today = useMemo(() => startOfDay(new Date()), []);
@@ -76,9 +77,10 @@ export default function CalendarPage() {
 
   const loadData = async () => {
     setIsLoading(true);
-    const [fetchedEvents, fetchedTasks] = await Promise.all([getEvents(), getTasks()]);
-    setEvents(fetchedEvents);
+    const [fetchedUserEvents, fetchedTasks, fetchedClassRoutine] = await Promise.all([getUserEvents(), getTasks(), getClassRoutine()]);
+    setUserEvents(fetchedUserEvents);
     setTasks(fetchedTasks);
+    setClassRoutine(fetchedClassRoutine);
     setIsLoading(false);
   };
 
@@ -88,10 +90,10 @@ export default function CalendarPage() {
 
   useEffect(() => {
     if (!isLoading) {
-      const allItems = [...events, ...tasks.filter(t => t.startTime).map(t => ({...t, isOfficial: false} as CalendarEvent))];
+      const allItems = [...classRoutine, ...userEvents, ...tasks.filter(t => t.startTime).map(t => ({...t, isOfficial: false} as CalendarEvent))];
       setEmptySlots(getEmptySlots(allItems as CalendarEvent[], selectedDate));
     }
-  }, [selectedDate, events, tasks, isLoading]);
+  }, [selectedDate, userEvents, classRoutine, tasks, isLoading]);
 
   const handleTaskDialogClose = () => {
     setIsTaskDialogOpen(false);
@@ -153,7 +155,7 @@ export default function CalendarPage() {
   }
   
   const itemsByDate = useMemo(() => {
-    const allItems: DisplayItem[] = [...events, ...tasks];
+    const allItems: DisplayItem[] = [...userEvents, ...tasks];
     const grouped = allItems.reduce((acc, item) => {
         const date = 'startTime' in item && item.startTime ? item.startTime : ('dueDate' in item ? item.dueDate : null);
         if (date) {
@@ -190,11 +192,16 @@ export default function CalendarPage() {
     }
 
     return grouped;
-  }, [events, tasks]);
+  }, [userEvents, tasks]);
 
-  const selectedDayItems = useMemo(() => {
+  const selectedDayUserItems = useMemo(() => {
     return itemsByDate[format(selectedDate, 'yyyy-MM-dd')] || [];
   }, [itemsByDate, selectedDate]);
+  
+  const selectedDayRoutine = useMemo(() => {
+    return classRoutine.filter(event => isSameDay(event.startTime, selectedDate))
+                       .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+  }, [classRoutine, selectedDate]);
 
 
   return (
@@ -205,7 +212,7 @@ export default function CalendarPage() {
         onSave={handleTaskSave}
         onDelete={handleTaskDelete}
         task={selectedTask}
-        events={events}
+        events={[...userEvents, ...classRoutine]}
         tasks={tasks}
       />
       <div className="flex flex-col lg:flex-row gap-8 h-full">
@@ -266,10 +273,10 @@ export default function CalendarPage() {
                       {(itemsByDate[format(day, 'yyyy-MM-dd')] || []).slice(0, 2).map(item => (
                         <div
                           key={item.id}
-                          className={cn(
+                           className={cn(
                               "text-xs p-1 rounded-md truncate",
                               'startTime' in item && item.startTime
-                                  ? (item.isOfficial ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground")
+                                  ? (item.isOfficial ? "bg-purple-100 text-purple-800" : "bg-secondary text-secondary-foreground")
                                   : "bg-blue-100 text-blue-800",
                               'completed' in item && item.completed && "line-through bg-gray-200 text-gray-500"
                           )}
@@ -304,59 +311,97 @@ export default function CalendarPage() {
                         <Skeleton className="h-20 w-full" />
                         <Skeleton className="h-20 w-full" />
                       </div>
-                    ) : selectedDayItems.length > 0 ? (
-                      selectedDayItems.map(item => {
-                          if ('startTime' in item && item.startTime) { // It's an event or a scheduled task
-                              return (
-                                  <div key={item.id} className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-secondary/50 transition-colors"
-                                    onClick={() => 'priority' in item ? handleTaskClick(item as Task) : null}
-                                  >
+                    ) : (
+                      <>
+                        {selectedDayRoutine.length > 0 && (
+                          <div>
+                            <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
+                              <BookOpen className="w-5 h-5"/>
+                              Class Routine
+                            </h3>
+                            <div className="space-y-3">
+                              {selectedDayRoutine.map(event => (
+                                <div key={event.id} className="flex gap-4 p-4 rounded-lg border bg-accent/10">
                                   <div className="font-semibold text-sm text-center">
-                                      <p>{format(item.startTime, 'HH:mm')}</p>
+                                      <p>{format(event.startTime, 'HH:mm')}</p>
                                       <p className="text-muted-foreground">-</p>
-                                      <p>{format(item.endTime!, 'HH:mm')}</p>
+                                      <p>{format(event.endTime, 'HH:mm')}</p>
                                   </div>
                                   <div className="flex-1">
-                                      <div className="flex justify-between items-start">
-                                      <div>
-                                          <h3 className="font-semibold">{item.title}</h3>
-                                          <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                                          {'roomNumber' in item && item.roomNumber && (
-                                              <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {item.roomNumber}</span>
-                                          )}
-                                          </div>
-                                      </div>
-                                      {'isOfficial' in item && item.isOfficial && <Badge variant="outline">Official</Badge>}
-                                      </div>
+                                    <h3 className="font-semibold">{event.title}</h3>
+                                    {event.roomNumber && (
+                                      <p className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                                        <Pin className="w-4 h-4" /> {event.roomNumber}
+                                      </p>
+                                    )}
                                   </div>
-                                  </div>
-                              );
-                          } else { // It's a task without a specific time
-                              const task = item as Task;
-                              const isTaskDueToday = isSameDay(task.dueDate, today);
-                              return (
-                                  <div key={task.id} onClick={() => handleTaskClick(task)} className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer">
-                                      <div className="pt-1">
-                                          <ListTodo className={cn("w-5 h-5 text-primary", task.completed && "text-gray-400")} />
-                                      </div>
-                                      <div className="flex-1">
-                                          <h3 className={cn("font-semibold", task.completed && "line-through text-muted-foreground")}>{task.title}</h3>
-                                          <p className="text-sm text-muted-foreground">
-                                            {task.completed ? "Completed" : isTaskDueToday
-                                              ? `Due ${formatDistanceToNow(task.dueDate, { addSuffix: true })}`
-                                              : `Due on ${format(task.dueDate, 'MMM d')}`
-                                            }
-                                          </p>
-                                      </div>
-                                      <Badge variant={task.priority === 'High' ? 'destructive' : task.priority === 'Medium' ? 'secondary' : 'outline'}>{task.priority}</Badge>
-                                  </div>
-                              );
-                          }
-                      })
-                    ) : (
-                      <div className="text-center py-10 h-full flex flex-col justify-center items-center">
-                        <p className="text-muted-foreground">No events or tasks for this day.</p>
-                      </div>
+                                </div>
+                              ))}
+                            </div>
+                            <Separator className="my-6" />
+                          </div>
+                        )}
+                        
+                        <div>
+                          <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
+                              <CalendarCheck className="w-5 h-5"/>
+                              Scheduled Tasks & Appointments
+                          </h3>
+                           {selectedDayUserItems.length > 0 ? (
+                            selectedDayUserItems.map(item => {
+                                if ('startTime' in item && item.startTime && 'endTime' in item && item.endTime) { // It's an event or a scheduled task
+                                    return (
+                                        <div key={item.id} className="flex gap-4 p-4 mb-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors"
+                                          onClick={() => 'priority' in item ? handleTaskClick(item as Task) : null}
+                                        >
+                                        <div className="font-semibold text-sm text-center">
+                                            <p>{format(item.startTime, 'HH:mm')}</p>
+                                            <p className="text-muted-foreground">-</p>
+                                            <p>{format(item.endTime, 'HH:mm')}</p>
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start">
+                                            <div>
+                                                <h3 className="font-semibold">{item.title}</h3>
+                                                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                                                {'roomNumber' in item && item.roomNumber && (
+                                                    <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {item.roomNumber}</span>
+                                                )}
+                                                </div>
+                                            </div>
+                                            </div>
+                                        </div>
+                                        </div>
+                                    );
+                                } else { // It's a task without a specific time
+                                    const task = item as Task;
+                                    const isTaskDueToday = isSameDay(task.dueDate, today);
+                                    return (
+                                        <div key={task.id} onClick={() => handleTaskClick(task)} className="flex gap-4 p-4 mb-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer">
+                                            <div className="pt-1">
+                                                <ListTodo className={cn("w-5 h-5 text-primary", task.completed && "text-gray-400")} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className={cn("font-semibold", task.completed && "line-through text-muted-foreground")}>{task.title}</h3>
+                                                <p className="text-sm text-muted-foreground">
+                                                  {task.completed ? "Completed" : isTaskDueToday
+                                                    ? `Due ${formatDistanceToNow(task.dueDate, { addSuffix: true })}`
+                                                    : `Due on ${format(task.dueDate, 'MMM d')}`
+                                                  }
+                                                </p>
+                                            </div>
+                                            <Badge variant={task.priority === 'High' ? 'destructive' : task.priority === 'Medium' ? 'secondary' : 'outline'}>{task.priority}</Badge>
+                                        </div>
+                                    );
+                                }
+                            })
+                          ) : (
+                            <div className="text-center py-6">
+                              <p className="text-sm text-muted-foreground">No tasks or appointments for this day.</p>
+                            </div>
+                          )}
+                        </div>
+                      </>
                     )}
 
                     <Separator className="my-6" />
