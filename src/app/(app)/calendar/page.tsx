@@ -199,7 +199,7 @@ export default function CalendarPage() {
         routine={classRoutine}
         tasks={tasks}
       />
-      <div className="flex flex-col lg:flex-row gap-8 h-full">
+      <div className="flex flex-col lg:flex-row gap-8 h-full w-full">
         <div className="flex-1 flex flex-col h-full">
           <Card className="flex-1 flex flex-col">
             <CardHeader>
