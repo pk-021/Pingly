@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { getTasks, updateTask, addTask, deleteTask, getClassRoutine } from "@/lib/data-service";
 import type { Task, CalendarEvent } from "@/lib/types";
-import { formatDistanceToNow, format, isToday, isPast, endOfDay } from 'date-fns';
+import { formatDistanceToNow, format, isToday, isPast, endOfDay, isAfter, startOfDay } from 'date-fns';
 import { ListTodo, CheckCircle2, Circle, ChevronUp, ChevronDown, Equal, PlusCircle, Clock, AlertCircle } from "lucide-react";
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -97,9 +97,11 @@ export default function UpcomingTasksCard() {
     }
 
     const filteredTasks = useMemo(() => {
+        const today = startOfDay(new Date());
         if (filter === 'all') return tasks;
         if (filter === 'completed') return tasks.filter(task => task.completed);
-        return tasks.filter(task => !task.completed);
+        // Upcoming tasks are those that are not completed and are due after today
+        return tasks.filter(task => !task.completed && isAfter(task.dueDate, today));
     }, [filter, tasks]);
 
     return (
