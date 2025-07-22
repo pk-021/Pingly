@@ -72,7 +72,6 @@ let mockTasks: Task[] = [
     dueDate: nextWeek,
     completed: true,
     completionNotes: 'Updated syllabus and added new lecture notes.',
-    completionPhotos: ['https://placehold.co/400x300.png']
   },
   {
     id: 't5',

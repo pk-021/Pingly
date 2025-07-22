@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -36,8 +36,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { format, addHours, startOfDay, setHours, setMinutes, getHours, getMinutes, isSameDay } from 'date-fns';
-import { CalendarIcon, Trash2, Paperclip, Pencil, Clock } from 'lucide-react';
-import Image from 'next/image';
+import { CalendarIcon, Trash2, Pencil, Clock } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 
 const taskSchema = z.object({
@@ -118,8 +117,6 @@ function getAvailableSlots(date: Date, allItems: DisplayItem[], currentTaskId?: 
 
 export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, tasks }: TaskDialogProps) {
   const [isEditing, setIsEditing] = useState(!task);
-  const [attachedPhotos, setAttachedPhotos] = useState<string[]>(task?.completionPhotos || []);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof taskSchema>>({
     resolver: zodResolver(taskSchema),
@@ -160,7 +157,6 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
             completionNotes: task.completionNotes || '',
             roomNumber: task.roomNumber || '',
           });
-          setAttachedPhotos(task.completionPhotos || []);
           setIsEditing(false);
         } else {
           form.reset({
@@ -173,20 +169,11 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
             completionNotes: '',
             roomNumber: '',
           });
-          setAttachedPhotos([]);
           setIsEditing(true);
         }
     }
   }, [task, isOpen, form]);
   
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-        const files = Array.from(event.target.files);
-        const dataUrls = files.map(file => URL.createObjectURL(file));
-        setAttachedPhotos(prev => [...prev, ...dataUrls]);
-    }
-  };
-
   const handleSave = (data: z.infer<typeof taskSchema>) => {
     const { startTime, endTime, ...restData } = data;
     let finalTaskData: Omit<Task, 'id' | 'completed'> | Task = { ...task, ...restData, completed: task?.completed || false };
@@ -212,7 +199,6 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
         handleSave({
             ...formData,
             completed: true, 
-            completionPhotos: attachedPhotos,
         } as any);
     }
   };
@@ -465,16 +451,6 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                                 <h4 className="text-sm font-medium text-muted-foreground">Notes</h4>
                                 <p>{task.completionNotes || "No notes provided."}</p>
                             </div>
-                            <div>
-                                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Attachments</h4>
-                                 {attachedPhotos.length > 0 ? (
-                                    <div className="flex gap-2 flex-wrap">
-                                        {attachedPhotos.map((photo, index) => (
-                                            <Image key={index} src={photo} alt={`attachment ${index+1}`} width={80} height={80} className="rounded-md object-cover" />
-                                        ))}
-                                    </div>
-                                 ) : <p>No photos attached.</p>}
-                            </div>
                         </div>
                     ) : (
                         <div className="space-y-4 pt-4 border-t">
@@ -490,24 +466,6 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                                     </FormItem>
                                 )}
                             />
-                            <div>
-                                 <FormLabel>Attach Photos (Optional)</FormLabel>
-                                 <div className="flex items-center gap-4 mt-2">
-                                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                                        <Paperclip className="mr-2 h-4 w-4"/>
-                                        Add Photo
-                                    </Button>
-                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} multiple accept="image/*" className="hidden" />
-                                    <span className="text-sm text-muted-foreground">{attachedPhotos.length} photo(s) attached</span>
-                                 </div>
-                                  {attachedPhotos.length > 0 && (
-                                    <div className="flex gap-2 flex-wrap mt-2">
-                                        {attachedPhotos.map((photo, index) => (
-                                            <Image key={index} src={photo} alt={`attachment ${index+1}`} width={60} height={60} className="rounded-md object-cover" />
-                                        ))}
-                                    </div>
-                                 )}
-                            </div>
                              <Button type="submit" className="w-full">Mark as Complete</Button>
                         </div>
                     )}

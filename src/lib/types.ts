@@ -16,7 +16,6 @@ export type Task = {
   endTime?: Date;
   completed: boolean;
   completionNotes?: string;
-  completionPhotos?: string[];
   roomNumber?: string;
 };
 
