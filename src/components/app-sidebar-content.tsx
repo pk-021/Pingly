@@ -14,25 +14,45 @@ import {
   CalendarDays,
   Settings,
   BookOpen,
+  LogOut,
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { Skeleton } from './ui/skeleton';
+import { signOut } from 'firebase/auth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Button } from './ui/button';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/class-routine', label: 'Class Routine', icon: BookOpen },
-  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export function AppSidebarContent() {
   const pathname = usePathname();
+  const router = useRouter();
   const [user, loading] = useAuthState(auth);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error("Error signing out: ", error);
+    }
+  };
+
 
   return (
     <>
@@ -89,16 +109,34 @@ export function AppSidebarContent() {
                 </div>
             </div>
         ) : user ? (
-            <Button variant="ghost" className='w-full justify-start gap-2 p-2 h-auto'>
-                <Avatar className="h-8 w-8">
-                <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} data-ai-hint="profile picture" />
-                <AvatarFallback>{user.displayName?.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="text-left">
-                    <p className="font-medium text-sm">{user.displayName}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                </div>
-            </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+               <Button variant="ghost" className='w-full justify-start gap-2 p-2 h-auto'>
+                  <Avatar className="h-8 w-8">
+                  <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} data-ai-hint="profile picture" />
+                  <AvatarFallback>{user.displayName?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="text-left">
+                      <p className="font-medium text-sm">{user.displayName}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-[var(--sidebar-width)] mb-2" side="top" align="start">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <Link href="/settings">
+                <DropdownMenuItem className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+              </Link>
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : null}
       </SidebarFooter>
     </>
