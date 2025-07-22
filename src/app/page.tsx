@@ -8,7 +8,7 @@ import { PlusCircle } from "lucide-react";
 import Link from 'next/link';
 import { auth } from "@/lib/firebase";
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { useRouter } from 'next/navigation';
+import { useRouter, redirect } from 'next/navigation';
 import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AppLayout from "./(app)/layout";
@@ -41,6 +41,11 @@ export default function Home() {
     return null;
   }
 
+  // Redirect authenticated users to the main calendar view.
+  redirect('/calendar');
+  
+  // The content below will not be rendered due to the redirect,
+  // but it's kept as a fallback structure.
   return (
     <AppLayout>
       <div className="space-y-8">
