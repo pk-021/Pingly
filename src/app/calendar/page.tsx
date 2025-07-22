@@ -17,6 +17,7 @@ import {
   addHours,
   isSameDay as isSameDate,
   formatDistanceToNow,
+  getDay,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle, ListTodo, PlusCircle, CalendarCheck, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -199,7 +200,8 @@ export default function CalendarPage() {
   }, [itemsByDate, selectedDate]);
   
   const selectedDayRoutine = useMemo(() => {
-    return classRoutine.filter(event => isSameDay(event.startTime, selectedDate))
+    const dayOfWeek = getDay(selectedDate);
+    return classRoutine.filter(event => getDay(event.startTime) === dayOfWeek)
                        .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   }, [classRoutine, selectedDate]);
 
