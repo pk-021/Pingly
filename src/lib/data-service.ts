@@ -22,8 +22,8 @@ let mockEvents: CalendarEvent[] = [
   {
     id: '2',
     title: 'Project Phoenix Meeting',
-    startTime: new Date(new Date().setHours(10, 0, 0, 0)),
-    endTime: new Date(new Date().setHours(11, 0, 0, 0)),
+    startTime: new Date(new Date().setHours(11, 0, 0, 0)),
+    endTime: new Date(new Date().setHours(12, 0, 0, 0)),
     isOfficial: false,
     roomNumber: 'Library Room 3',
   },
@@ -58,7 +58,9 @@ let mockTasks: Task[] = [
     title: 'Grade Midterm Exams',
     description: 'Go through all the papers from the CS101 midterm exam and upload the grades to the portal.',
     priority: 'High',
-    dueDate: tomorrow,
+    dueDate: today,
+    startTime: new Date(new Date().setHours(16, 0, 0, 0)),
+    endTime: new Date(new Date().setHours(17, 0, 0, 0)),
     completed: false,
   },
   {
@@ -117,6 +119,15 @@ export async function addTask(task: Omit<Task, 'id' | 'completed'>): Promise<Tas
         completed: false,
     };
     mockTasks.push(newTask);
+    if(newTask.startTime && newTask.endTime) {
+        mockEvents.push({
+            id: `evt-${newTask.id}`,
+            title: newTask.title,
+            startTime: newTask.startTime,
+            endTime: newTask.endTime,
+            isOfficial: false
+        })
+    }
     return Promise.resolve(newTask);
 }
 
@@ -126,7 +137,29 @@ export async function updateTask(updatedTask: Task): Promise<Task> {
     if (index === -1) {
         throw new Error("Task not found");
     }
+    const oldTask = mockTasks[index];
     mockTasks[index] = updatedTask;
+
+    const eventId = `evt-${updatedTask.id}`;
+    const eventIndex = mockEvents.findIndex(e => e.id === eventId);
+    
+    if (updatedTask.startTime && updatedTask.endTime) {
+        const newEvent = {
+            id: eventId,
+            title: updatedTask.title,
+            startTime: updatedTask.startTime,
+            endTime: updatedTask.endTime,
+            isOfficial: false
+        };
+        if (eventIndex > -1) {
+            mockEvents[eventIndex] = newEvent;
+        } else {
+            mockEvents.push(newEvent);
+        }
+    } else if (eventIndex > -1) {
+        mockEvents.splice(eventIndex, 1);
+    }
+
     return Promise.resolve(updatedTask);
 }
 
@@ -137,5 +170,12 @@ export async function deleteTask(taskId: string): Promise<{ success: true }> {
         throw new Error("Task not found");
     }
     mockTasks.splice(index, 1);
+
+    const eventId = `evt-${taskId}`;
+    const eventIndex = mockEvents.findIndex(e => e.id === eventId);
+    if (eventIndex > -1) {
+        mockEvents.splice(eventIndex, 1);
+    }
+
     return Promise.resolve({ success: true });
 }

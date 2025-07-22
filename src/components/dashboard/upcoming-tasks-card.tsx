@@ -2,10 +2,10 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { getTasks, updateTask, addTask, deleteTask } from "@/lib/data-service";
-import type { Task } from "@/lib/types";
-import { formatDistanceToNow } from 'date-fns';
-import { ListTodo, CheckCircle2, Circle, ChevronUp, ChevronDown, Equal, PlusCircle } from "lucide-react";
+import { getTasks, updateTask, addTask, deleteTask, getEvents } from "@/lib/data-service";
+import type { Task, CalendarEvent } from "@/lib/types";
+import { formatDistanceToNow, format } from 'date-fns';
+import { ListTodo, CheckCircle2, Circle, ChevronUp, ChevronDown, Equal, PlusCircle, Clock } from "lucide-react";
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { cn } from '@/lib/utils';
@@ -22,21 +22,23 @@ const priorityIcons = {
 
 export default function UpcomingTasksCard() {
     const [tasks, setTasks] = useState<Task[]>([]);
+    const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed'>('upcoming');
     const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
     const { toast } = useToast();
 
-    const loadTasks = async () => {
+    const loadData = async () => {
         setIsLoading(true);
-        const fetchedTasks = await getTasks();
+        const [fetchedTasks, fetchedEvents] = await Promise.all([getTasks(), getEvents()]);
         setTasks(fetchedTasks.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime()));
+        setEvents(fetchedEvents);
         setIsLoading(false);
     };
 
     useEffect(() => {
-        loadTasks();
+        loadData();
     }, []);
 
     const handleTaskDialogClose = () => {
@@ -46,14 +48,14 @@ export default function UpcomingTasksCard() {
     
     const handleTaskSave = async (task: Omit<Task, 'id'> | Task) => {
         try {
-          if ('id' in task) {
-            await updateTask(task);
+          if ('id' in task && task.id) {
+            await updateTask(task as Task);
             toast({ title: "Task Updated", description: "Your task has been successfully updated." });
           } else {
-            await addTask(task);
+            await addTask(task as Omit<Task, 'id'>);
             toast({ title: "Task Added", description: "Your new task has been successfully added." });
           }
-          loadTasks();
+          loadData();
           handleTaskDialogClose();
         } catch (error) {
           toast({ variant: 'destructive', title: "Error", description: "Failed to save the task." });
@@ -64,7 +66,7 @@ export default function UpcomingTasksCard() {
         try {
             await deleteTask(taskId);
             toast({ title: "Task Deleted", description: "The task has been removed." });
-            loadTasks();
+            loadData();
             handleTaskDialogClose();
         } catch (error) {
             toast({ variant: 'destructive', title: "Error", description: "Failed to delete the task." });
@@ -95,6 +97,8 @@ export default function UpcomingTasksCard() {
                 onSave={handleTaskSave}
                 onDelete={handleTaskDelete}
                 task={selectedTask}
+                tasks={tasks}
+                events={events}
             />
             <Card className="flex flex-col h-full">
                 <CardHeader>
@@ -132,9 +136,17 @@ export default function UpcomingTasksCard() {
                                     {task.completed ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <Circle className="w-5 h-5 text-muted-foreground" />}
                                     <div className="flex-1">
                                         <p className={cn("font-medium", task.completed && "line-through text-muted-foreground")}>{task.title}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {task.completed ? 'Completed' : `Due ${formatDistanceToNow(task.dueDate, { addSuffix: true })}`}
-                                        </p>
+                                        <div className="text-sm text-muted-foreground">
+                                            <span>
+                                                {task.completed ? 'Completed' : `Due ${formatDistanceToNow(task.dueDate, { addSuffix: true })}`}
+                                            </span>
+                                            {task.startTime && task.endTime && (
+                                                <span className='ml-2 inline-flex items-center gap-1'>
+                                                    <Clock className="w-3 h-3"/>
+                                                    {format(task.startTime, 'p')}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {priorityIcons[task.priority]}

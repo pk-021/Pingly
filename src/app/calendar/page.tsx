@@ -88,9 +88,10 @@ export default function CalendarPage() {
 
   useEffect(() => {
     if (!isLoading) {
-      setEmptySlots(getEmptySlots(events, selectedDate));
+      const allItems = [...events, ...tasks.filter(t => t.startTime).map(t => ({...t, isOfficial: false} as CalendarEvent))];
+      setEmptySlots(getEmptySlots(allItems as CalendarEvent[], selectedDate));
     }
-  }, [selectedDate, events, isLoading]);
+  }, [selectedDate, events, tasks, isLoading]);
 
   const handleTaskDialogClose = () => {
     setIsTaskDialogOpen(false);
@@ -99,11 +100,11 @@ export default function CalendarPage() {
 
   const handleTaskSave = async (task: Omit<Task, 'id'> | Task) => {
     try {
-      if ('id' in task) {
-        await updateTask(task);
+      if ('id' in task && task.id) {
+        await updateTask(task as Task);
         toast({ title: "Task Updated", description: "Your task has been successfully updated." });
       } else {
-        await addTask(task);
+        await addTask(task as Omit<Task, 'id'>);
         toast({ title: "Task Added", description: "Your new task has been successfully added." });
       }
       loadData();
@@ -154,7 +155,7 @@ export default function CalendarPage() {
   const itemsByDate = useMemo(() => {
     const allItems: DisplayItem[] = [...events, ...tasks];
     const grouped = allItems.reduce((acc, item) => {
-        const date = 'startTime' in item ? item.startTime : item.dueDate;
+        const date = 'startTime' in item && item.startTime ? item.startTime : ('dueDate' in item ? item.dueDate : null);
         if (date) {
             const dateKey = format(startOfDay(date), 'yyyy-MM-dd');
             if (!acc[dateKey]) {
@@ -167,28 +168,25 @@ export default function CalendarPage() {
 
     // Sort items within each day
     for (const dateKey in grouped) {
-      grouped[dateKey].sort((a, b) => {
-        const isTaskA = 'priority' in a;
-        const isTaskB = 'priority' in b;
-    
-        // Tasks always come before events
-        if (isTaskA && !isTaskB) return -1;
-        if (!isTaskA && isTaskB) return 1;
-    
-        // If both are tasks, sort by completion status then priority
-        if (isTaskA && isTaskB) {
-          if (a.completed && !b.completed) return 1;
-          if (!a.completed && b.completed) return -1;
-          return priorityOrder[a.priority] - priorityOrder[b.priority];
-        }
-    
-        // If both are events, sort by start time
-        if (!isTaskA && !isTaskB) {
-          return (a as CalendarEvent).startTime.getTime() - (b as CalendarEvent).startTime.getTime();
-        }
-    
-        return 0;
-      });
+        grouped[dateKey].sort((a, b) => {
+            const aTime = 'startTime' in a ? a.startTime : undefined;
+            const bTime = 'startTime' in b ? b.startTime : undefined;
+        
+            if (aTime && bTime) return aTime.getTime() - bTime.getTime();
+            if (aTime) return -1; // a has time, b doesn't, a comes first
+            if (bTime) return 1;  // b has time, a doesn't, b comes first
+        
+            // If neither have specific times (e.g. all-day tasks)
+            const isTaskA = 'priority' in a;
+            const isTaskB = 'priority' in b;
+        
+            if (isTaskA && isTaskB) {
+                if (a.completed && !b.completed) return 1;
+                if (!a.completed && b.completed) return -1;
+                return priorityOrder[a.priority] - priorityOrder[b.priority];
+            }
+            return 0;
+        });
     }
 
     return grouped;
@@ -207,6 +205,8 @@ export default function CalendarPage() {
         onSave={handleTaskSave}
         onDelete={handleTaskDelete}
         task={selectedTask}
+        events={events}
+        tasks={tasks}
       />
       <div className="flex flex-col lg:flex-row gap-8 h-full">
         <Card className="flex-1">
@@ -268,13 +268,13 @@ export default function CalendarPage() {
                           key={item.id}
                           className={cn(
                               "text-xs p-1 rounded-md truncate",
-                              'startTime' in item
+                              'startTime' in item && item.startTime
                                   ? (item.isOfficial ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground")
                                   : "bg-blue-100 text-blue-800",
                               'completed' in item && item.completed && "line-through bg-gray-200 text-gray-500"
                           )}
                         >
-                          {item.title}
+                          {'startTime' in item && item.startTime ? `${format(item.startTime, 'HH:mm')} ` : ''}{item.title}
                         </div>
                       ))}
                       {(itemsByDate[format(day, 'yyyy-MM-dd')] || []).length > 2 && (
@@ -306,46 +306,49 @@ export default function CalendarPage() {
                       </div>
                     ) : selectedDayItems.length > 0 ? (
                       selectedDayItems.map(item => {
-                          if ('startTime' in item) { // It's an event
+                          if ('startTime' in item && item.startTime) { // It's an event or a scheduled task
                               return (
-                                  <div key={item.id} className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-secondary/50 transition-colors">
+                                  <div key={item.id} className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-secondary/50 transition-colors"
+                                    onClick={() => 'priority' in item ? handleTaskClick(item as Task) : null}
+                                  >
                                   <div className="font-semibold text-sm text-center">
                                       <p>{format(item.startTime, 'HH:mm')}</p>
                                       <p className="text-muted-foreground">-</p>
-                                      <p>{format(item.endTime, 'HH:mm')}</p>
+                                      <p>{format(item.endTime!, 'HH:mm')}</p>
                                   </div>
                                   <div className="flex-1">
                                       <div className="flex justify-between items-start">
                                       <div>
                                           <h3 className="font-semibold">{item.title}</h3>
                                           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                                          {item.roomNumber && (
+                                          {'roomNumber' in item && item.roomNumber && (
                                               <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {item.roomNumber}</span>
                                           )}
                                           </div>
                                       </div>
-                                      {item.isOfficial && <Badge variant="outline">Official</Badge>}
+                                      {'isOfficial' in item && item.isOfficial && <Badge variant="outline">Official</Badge>}
                                       </div>
                                   </div>
                                   </div>
                               );
-                          } else { // It's a task
-                              const isTaskDueToday = isSameDay(item.dueDate, today);
+                          } else { // It's a task without a specific time
+                              const task = item as Task;
+                              const isTaskDueToday = isSameDay(task.dueDate, today);
                               return (
-                                  <div key={item.id} onClick={() => handleTaskClick(item)} className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer">
+                                  <div key={task.id} onClick={() => handleTaskClick(task)} className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer">
                                       <div className="pt-1">
-                                          <ListTodo className={cn("w-5 h-5 text-primary", item.completed && "text-gray-400")} />
+                                          <ListTodo className={cn("w-5 h-5 text-primary", task.completed && "text-gray-400")} />
                                       </div>
                                       <div className="flex-1">
-                                          <h3 className={cn("font-semibold", item.completed && "line-through text-muted-foreground")}>{item.title}</h3>
+                                          <h3 className={cn("font-semibold", task.completed && "line-through text-muted-foreground")}>{task.title}</h3>
                                           <p className="text-sm text-muted-foreground">
-                                            {item.completed ? "Completed" : isTaskDueToday
-                                              ? `Due ${formatDistanceToNow(item.dueDate, { addSuffix: true })}`
-                                              : `Due on ${format(item.dueDate, 'MMM d')}`
+                                            {task.completed ? "Completed" : isTaskDueToday
+                                              ? `Due ${formatDistanceToNow(task.dueDate, { addSuffix: true })}`
+                                              : `Due on ${format(task.dueDate, 'MMM d')}`
                                             }
                                           </p>
                                       </div>
-                                      <Badge variant={item.priority === 'High' ? 'destructive' : item.priority === 'Medium' ? 'secondary' : 'outline'}>{item.priority}</Badge>
+                                      <Badge variant={task.priority === 'High' ? 'destructive' : task.priority === 'Medium' ? 'secondary' : 'outline'}>{task.priority}</Badge>
                                   </div>
                               );
                           }

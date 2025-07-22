@@ -13,6 +13,8 @@ export type Task = {
   description?: string;
   priority: 'High' | 'Medium' | 'Low';
   dueDate: Date;
+  startTime?: Date;
+  endTime?: Date;
   completed: boolean;
   completionNotes?: string;
   completionPhotos?: string[];
