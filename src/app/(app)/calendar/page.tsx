@@ -200,7 +200,7 @@ export default function CalendarPage() {
         tasks={tasks}
       />
       <div className="flex flex-col lg:flex-row gap-8 h-full w-full">
-        <div className="flex-1 flex flex-col h-full">
+        <div className="flex-1 flex flex-col h-full w-full">
           <Card className="flex-1 flex flex-col">
             <CardHeader>
               <div className="flex items-center justify-between">
