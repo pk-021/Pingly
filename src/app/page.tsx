@@ -1,4 +1,6 @@
 
+'use client';
+
 import DailyScheduleCard from "@/components/dashboard/daily-schedule-card";
 import UpcomingTasksCard from "@/components/dashboard/upcoming-tasks-card";
 import { Button } from "@/components/ui/button";
@@ -12,8 +14,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error("Error signing out: ", error);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -44,7 +60,7 @@ export default function Home() {
                   <span>Settings</span>
                 </DropdownMenuItem>
               </Link>
-              <DropdownMenuItem className="cursor-pointer">
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>

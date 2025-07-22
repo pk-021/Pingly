@@ -1,4 +1,5 @@
 
+
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -17,9 +18,7 @@ export default function SettingsPage() {
   const handleSwitchChange = (checked: boolean) => {
     setIsNepaliCalendarEnabled(checked);
     localStorage.setItem('nepali-calendar-enabled', String(checked));
-    // Optional: Show a toast to confirm the setting has been saved.
-    // We might also want to trigger a data refresh globally if the app was more complex.
-    window.location.reload(); // Simple way to force a refresh to see changes
+    window.location.reload();
   };
 
   return (
@@ -52,5 +51,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

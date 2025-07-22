@@ -1,4 +1,5 @@
 
+
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -183,4 +184,3 @@ export default function ClassRoutinePage() {
     </>
   );
 }
-

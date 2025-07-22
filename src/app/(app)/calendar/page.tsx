@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -122,7 +123,7 @@ export default function CalendarPage() {
 
   const monthStart = startOfMonth(currentDate);
   const firstDay = startOfWeek(monthStart);
-  const lastDay = addDays(firstDay, 41); // Ensure 6 weeks (42 days)
+  const lastDay = addDays(firstDay, 41);
   
   const days = eachDayOfInterval({ start: firstDay, end: lastDay });
   
@@ -146,8 +147,8 @@ export default function CalendarPage() {
             const bTime = b.startTime;
         
             if (aTime && bTime) return aTime.getTime() - bTime.getTime();
-            if (aTime) return -1; // a has time, b doesn't, a comes first
-            if (bTime) return 1;  // b has time, a doesn't, b comes first
+            if (aTime) return -1;
+            if (bTime) return 1;
         
             if (a.completed && !b.completed) return 1;
             if (!a.completed && b.completed) return -1;
@@ -276,7 +277,7 @@ export default function CalendarPage() {
                           key={item.id}
                            className={cn(
                               "p-1 rounded-md truncate",
-                              item.startTime ? "bg-secondary text-secondary-foreground" : "bg-blue-100 text-blue-800",
+                              item.startTime ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800",
                               item.completed && "line-through bg-gray-200 text-gray-500"
                           )}
                         >
@@ -421,5 +422,3 @@ export default function CalendarPage() {
     </TooltipProvider>
   );
 }
-
-    
