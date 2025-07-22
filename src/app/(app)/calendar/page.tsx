@@ -297,7 +297,7 @@ export default function CalendarPage() {
             </CardContent>
           </Card>
         </div>
-        <div className="w-full lg:w-[350px] flex-shrink-0">
+        <div className="w-full lg:w-1/3 flex-shrink-0">
           <Card className="sticky top-6">
             <CardHeader>
               <CardTitle>Schedule for {format(selectedDate, 'MMMM d')}</CardTitle>
