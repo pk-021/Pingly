@@ -23,7 +23,7 @@ export default function AppLayout({
     }
   }, [user, loading, router]);
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="space-y-4">
@@ -35,6 +35,12 @@ export default function AppLayout({
           </div>
       </div>
     );
+  }
+
+  // This check is important to prevent a flash of the app layout before redirecting.
+  // We only render the layout if there is a user.
+  if (!user) {
+    return null; 
   }
 
   return (
