@@ -2,7 +2,7 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { getTasks, updateTask, addTask, deleteTask, getUserEvents, getClassRoutine } from "@/lib/data-service";
+import { getTasks, updateTask, addTask, deleteTask, getClassRoutine } from "@/lib/data-service";
 import type { Task, CalendarEvent } from "@/lib/types";
 import { formatDistanceToNow, format, isToday, isPast, endOfDay } from 'date-fns';
 import { ListTodo, CheckCircle2, Circle, ChevronUp, ChevronDown, Equal, PlusCircle, Clock, AlertCircle } from "lucide-react";
@@ -35,7 +35,7 @@ const getTaskStatus = (task: Task) => {
 
 export default function UpcomingTasksCard() {
     const [tasks, setTasks] = useState<Task[]>([]);
-    const [events, setEvents] = useState<CalendarEvent[]>([]);
+    const [routine, setRoutine] = useState<CalendarEvent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed'>('upcoming');
     const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
@@ -44,9 +44,9 @@ export default function UpcomingTasksCard() {
 
     const loadData = async () => {
         setIsLoading(true);
-        const [fetchedTasks, fetchedUserEvents, fetchedClassRoutine] = await Promise.all([getTasks(), getUserEvents(), getClassRoutine()]);
+        const [fetchedTasks, fetchedClassRoutine] = await Promise.all([getTasks(), getClassRoutine()]);
         setTasks(fetchedTasks.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime()));
-        setEvents([...fetchedUserEvents, ...fetchedClassRoutine]);
+        setRoutine(fetchedClassRoutine);
         setIsLoading(false);
     };
 
@@ -111,7 +111,7 @@ export default function UpcomingTasksCard() {
                 onDelete={handleTaskDelete}
                 task={selectedTask}
                 tasks={tasks}
-                events={events}
+                routine={routine}
             />
             <Card className="flex flex-col h-full">
                 <CardHeader>

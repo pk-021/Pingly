@@ -48,6 +48,7 @@ const taskSchema = z.object({
   startTime: z.string().optional(),
   endTime: z.string().optional(),
   completionNotes: z.string().optional(),
+  roomNumber: z.string().optional(),
 }).refine(data => {
     if (data.startTime && !data.endTime) return false;
     if (!data.startTime && data.endTime) return false;
@@ -71,7 +72,7 @@ type TaskDialogProps = {
   onSave: (task: Omit<Task, 'id'> | Task) => void;
   onDelete: (taskId: string) => void;
   task?: Task;
-  events: CalendarEvent[];
+  routine: CalendarEvent[];
   tasks: Task[];
 };
 
@@ -84,7 +85,13 @@ function getAvailableSlots(date: Date, allItems: DisplayItem[], currentTaskId?: 
     
     const itemsForDay = allItems
         .filter(item => ('id' in item && item.id !== currentTaskId)) // Exclude current task from conflict check
-        .filter(item => item.startTime && isSameDay(item.startTime, date))
+        .filter(item => {
+            const itemDate = 'startTime' in item ? item.startTime : ('dueDate' in item ? item.dueDate : null)
+            if (!itemDate) return false;
+            // For routine, check day of week, for tasks check full date
+            const checkDate = 'roomNumber' in item && !('priority' in item) ? getHours(itemDate) > 0 : isSameDay(itemDate, date)
+            return item.startTime && checkDate;
+        })
         .sort((a, b) => a.startTime!.getTime() - b.startTime!.getTime());
 
     const slots = [];
@@ -93,7 +100,7 @@ function getAvailableSlots(date: Date, allItems: DisplayItem[], currentTaskId?: 
     while (currentTime < endOfWorkDay) {
         const slotEnd = new Date(currentTime.getTime() + slotDuration * 60000);
         
-        const conflict = itemsForDay.some(item => 
+        let conflict = itemsForDay.some(item => 
             currentTime < item.endTime! && slotEnd > item.startTime!
         );
 
@@ -109,7 +116,7 @@ function getAvailableSlots(date: Date, allItems: DisplayItem[], currentTaskId?: 
 }
 
 
-export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, events, tasks }: TaskDialogProps) {
+export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, tasks }: TaskDialogProps) {
   const [isEditing, setIsEditing] = useState(!task);
   const [attachedPhotos, setAttachedPhotos] = useState<string[]>(task?.completionPhotos || []);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -124,6 +131,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, events, ta
       startTime: '',
       endTime: '',
       completionNotes: '',
+      roomNumber: '',
     },
   });
 
@@ -131,13 +139,13 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, events, ta
 
   const availableSlots = useMemo(() => {
     if (!watchedDueDate) return { startSlots: [], endSlots: [] };
-    const allItems = [...events, ...tasks];
+    const allItems = [...routine, ...tasks];
     const slots = getAvailableSlots(watchedDueDate, allItems, task?.id);
     return {
         startSlots: slots.map(s => s.start),
         endSlots: slots.map(s => s.end),
     };
-  }, [watchedDueDate, events, tasks, task?.id]);
+  }, [watchedDueDate, routine, tasks, task?.id]);
 
   useEffect(() => {
     if (isOpen) {
@@ -149,7 +157,8 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, events, ta
             dueDate: task.dueDate,
             startTime: task.startTime ? format(task.startTime, 'HH:mm') : '',
             endTime: task.endTime ? format(task.endTime, 'HH:mm') : '',
-            completionNotes: task.completionNotes || ''
+            completionNotes: task.completionNotes || '',
+            roomNumber: task.roomNumber || '',
           });
           setAttachedPhotos(task.completionPhotos || []);
           setIsEditing(false);
@@ -161,7 +170,8 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, events, ta
             dueDate: new Date(),
             startTime: '',
             endTime: '',
-            completionNotes: ''
+            completionNotes: '',
+            roomNumber: '',
           });
           setAttachedPhotos([]);
           setIsEditing(true);
@@ -245,6 +255,19 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, events, ta
                       <FormLabel>Description (Optional)</FormLabel>
                       <FormControl>
                         <Textarea placeholder="Add more details about the task..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="roomNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Library Room 3" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -409,6 +432,13 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, events, ta
                             <p className="text-sm">{task.description}</p>
                         </div>
                     )}
+                    
+                    {task.roomNumber && (
+                         <div>
+                            <h3 className="text-sm font-medium text-muted-foreground">Location</h3>
+                            <p className="text-sm">{task.roomNumber}</p>
+                        </div>
+                    )}
 
                     <div className="flex gap-8">
                         <div>
@@ -478,6 +508,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, events, ta
                                     </div>
                                  )}
                             </div>
+                             <Button type="submit" className="w-full">Mark as Complete</Button>
                         </div>
                     )}
                     
@@ -502,7 +533,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, events, ta
                             </AlertDialogContent>
                         </AlertDialog>
                         <DialogClose asChild><Button type="button" variant="ghost">Close</Button></DialogClose>
-                        {!task.completed && <Button type="submit">Mark as Complete</Button>}
+                        {task.completed && <Button type="submit" disabled>Completed</Button>}
                     </DialogFooter>
                 </form>
             </Form>

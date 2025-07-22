@@ -55,7 +55,7 @@ const eventSchema = z.object({
 type RoutineEventDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (event: Omit<CalendarEvent, 'id' | 'isOfficial'> | CalendarEvent) => void;
+  onSave: (event: Omit<CalendarEvent, 'id'> | CalendarEvent) => void;
   onDelete: (eventId: string) => void;
   event?: CalendarEvent;
   selectedDate?: Date;
@@ -97,7 +97,7 @@ export function RoutineEventDialog({ isOpen, onClose, onSave, onDelete, event, s
             return slotTime >= start && slotTime < end;
         });
     });
-  }, [routine, dayForConflictCheck, event?.id, timeSlots]);
+  }, [routine, dayForConflictCheck, event?.id]);
 
 
   useEffect(() => {
@@ -134,7 +134,6 @@ export function RoutineEventDialog({ isOpen, onClose, onSave, onDelete, event, s
         ...data,
         startTime: startDateTime,
         endTime: endDateTime,
-        isOfficial: true,
     };
     
     onSave(finalEventData as CalendarEvent);

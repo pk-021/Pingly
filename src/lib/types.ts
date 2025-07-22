@@ -3,7 +3,6 @@ export type CalendarEvent = {
   title: string;
   startTime: Date;
   endTime: Date;
-  isOfficial: boolean;
   roomNumber?: string;
 };
 
@@ -18,6 +17,7 @@ export type Task = {
   completed: boolean;
   completionNotes?: string;
   completionPhotos?: string[];
+  roomNumber?: string;
 };
 
 export type DisplayItem = CalendarEvent | Task;

@@ -23,7 +23,7 @@ import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle, ListTodo, PlusCircl
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getUserEvents, getTasks, addTask, updateTask, deleteTask, getClassRoutine } from '@/lib/data-service';
+import { getTasks, addTask, updateTask, deleteTask, getClassRoutine } from '@/lib/data-service';
 import { cn } from '@/lib/utils';
 import type { CalendarEvent, Task, DisplayItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -65,7 +65,6 @@ export default function CalendarPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
-  const [userEvents, setUserEvents] = useState<CalendarEvent[]>([]);
   const [classRoutine, setClassRoutine] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [emptySlots, setEmptySlots] = useState<{start: Date, end: Date}[]>([]);
@@ -78,8 +77,7 @@ export default function CalendarPage() {
 
   const loadData = async () => {
     setIsLoading(true);
-    const [fetchedUserEvents, fetchedTasks, fetchedClassRoutine] = await Promise.all([getUserEvents(), getTasks(), getClassRoutine()]);
-    setUserEvents(fetchedUserEvents);
+    const [fetchedTasks, fetchedClassRoutine] = await Promise.all([getTasks(), getClassRoutine()]);
     setTasks(fetchedTasks);
     setClassRoutine(fetchedClassRoutine);
     setIsLoading(false);
@@ -91,10 +89,10 @@ export default function CalendarPage() {
 
   useEffect(() => {
     if (!isLoading) {
-      const allItems = [...classRoutine, ...userEvents, ...tasks.filter(t => t.startTime).map(t => ({...t, isOfficial: false} as CalendarEvent))];
+      const allItems = [...classRoutine, ...tasks.filter(t => t.startTime).map(t => ({...t} as CalendarEvent))];
       setEmptySlots(getEmptySlots(allItems as CalendarEvent[], selectedDate));
     }
-  }, [selectedDate, userEvents, classRoutine, tasks, isLoading]);
+  }, [selectedDate, classRoutine, tasks, isLoading]);
 
   const handleTaskDialogClose = () => {
     setIsTaskDialogOpen(false);
@@ -132,11 +130,6 @@ export default function CalendarPage() {
     setSelectedTask(task);
     setIsTaskDialogOpen(true);
   }
-  
-  const handleAppointmentClick = (event: CalendarEvent) => {
-      // In the future, this could open a dialog to edit appointments.
-      // For now, we only edit tasks.
-  }
 
   const handleAddTaskClick = () => {
     setSelectedTask(undefined);
@@ -161,9 +154,9 @@ export default function CalendarPage() {
   }
   
   const itemsByDate = useMemo(() => {
-    const allItems: DisplayItem[] = [...userEvents, ...tasks];
+    const allItems: Task[] = [...tasks];
     const grouped = allItems.reduce((acc, item) => {
-        const date = 'startTime' in item && item.startTime ? item.startTime : ('dueDate' in item ? item.dueDate : null);
+        const date = item.dueDate;
         if (date) {
             const dateKey = format(startOfDay(date), 'yyyy-MM-dd');
             if (!acc[dateKey]) {
@@ -172,33 +165,26 @@ export default function CalendarPage() {
             acc[dateKey].push(item);
         }
         return acc;
-    }, {} as Record<string, DisplayItem[]>);
+    }, {} as Record<string, Task[]>);
 
     // Sort items within each day
     for (const dateKey in grouped) {
         grouped[dateKey].sort((a, b) => {
-            const aTime = 'startTime' in a ? a.startTime : undefined;
-            const bTime = 'startTime' in b ? b.startTime : undefined;
+            const aTime = a.startTime;
+            const bTime = b.startTime;
         
             if (aTime && bTime) return aTime.getTime() - bTime.getTime();
             if (aTime) return -1; // a has time, b doesn't, a comes first
             if (bTime) return 1;  // b has time, a doesn't, b comes first
         
-            // If neither have specific times (e.g. all-day tasks)
-            const isTaskA = 'priority' in a;
-            const isTaskB = 'priority' in b;
-        
-            if (isTaskA && isTaskB) {
-                if (a.completed && !b.completed) return 1;
-                if (!a.completed && b.completed) return -1;
-                return priorityOrder[a.priority] - priorityOrder[b.priority];
-            }
-            return 0;
+            if (a.completed && !b.completed) return 1;
+            if (!a.completed && b.completed) return -1;
+            return priorityOrder[a.priority] - priorityOrder[b.priority];
         });
     }
 
     return grouped;
-  }, [userEvents, tasks]);
+  }, [tasks]);
 
   const selectedDayUserItems = useMemo(() => {
     return itemsByDate[format(selectedDate, 'yyyy-MM-dd')] || [];
@@ -219,7 +205,7 @@ export default function CalendarPage() {
         onSave={handleTaskSave}
         onDelete={handleTaskDelete}
         task={selectedTask}
-        events={[...userEvents, ...classRoutine]}
+        routine={classRoutine}
         tasks={tasks}
       />
       <div className="flex flex-col lg:flex-row gap-8 h-full">
@@ -282,13 +268,11 @@ export default function CalendarPage() {
                           key={item.id}
                            className={cn(
                               "text-xs p-1 rounded-md truncate",
-                              'startTime' in item && item.startTime
-                                  ? (item.isOfficial ? "bg-purple-100 text-purple-800" : "bg-secondary text-secondary-foreground")
-                                  : "bg-blue-100 text-blue-800",
-                              'completed' in item && item.completed && "line-through bg-gray-200 text-gray-500"
+                              item.startTime ? "bg-secondary text-secondary-foreground" : "bg-blue-100 text-blue-800",
+                              item.completed && "line-through bg-gray-200 text-gray-500"
                           )}
                         >
-                          {'startTime' in item && item.startTime ? `${format(item.startTime, 'HH:mm')} ` : ''}{item.title}
+                          {item.startTime ? `${format(item.startTime, 'HH:mm')} ` : ''}{item.title}
                         </div>
                       ))}
                       {(itemsByDate[format(day, 'yyyy-MM-dd')] || []).length > 2 && (
@@ -352,33 +336,27 @@ export default function CalendarPage() {
                         <div>
                           <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
                               <CalendarCheck className="w-5 h-5"/>
-                              Scheduled Tasks & Appointments
+                              Scheduled Tasks
                           </h3>
                            {selectedDayUserItems.length > 0 ? (
-                            selectedDayUserItems.map(item => {
-                                const isTask = 'priority' in item;
-                                const isClickable = isTask || ('isOfficial' in item && !item.isOfficial);
-                                
-                                if ('startTime' in item && item.startTime && 'endTime' in item && item.endTime) { // It's an event or a scheduled task
+                            selectedDayUserItems.map(task => {
+                                if (task.startTime && task.endTime) { // It's a scheduled task
                                     return (
-                                        <div key={item.id} className={cn("flex gap-4 p-4 mb-3 rounded-lg border bg-card", isClickable && "hover:bg-secondary/50 transition-colors cursor-pointer")}
-                                          onClick={() => {
-                                            if (isTask) handleTaskClick(item as Task);
-                                            else if (isClickable) handleAppointmentClick(item as CalendarEvent);
-                                          }}
+                                        <div key={task.id} className="flex gap-4 p-4 mb-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer"
+                                          onClick={() => handleTaskClick(task)}
                                         >
                                           <div className="font-semibold text-sm text-center">
-                                              <p>{format(item.startTime, 'HH:mm')}</p>
+                                              <p>{format(task.startTime, 'HH:mm')}</p>
                                               <p className="text-muted-foreground">-</p>
-                                              <p>{format(item.endTime, 'HH:mm')}</p>
+                                              <p>{format(task.endTime, 'HH:mm')}</p>
                                           </div>
                                           <div className="flex-1">
                                               <div className="flex justify-between items-start">
                                               <div>
-                                                  <h3 className="font-semibold">{item.title}</h3>
+                                                  <h3 className="font-semibold">{task.title}</h3>
                                                   <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                                                  {'roomNumber' in item && item.roomNumber && (
-                                                      <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {item.roomNumber}</span>
+                                                  {task.roomNumber && (
+                                                      <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {task.roomNumber}</span>
                                                   )}
                                                   </div>
                                               </div>
@@ -387,7 +365,6 @@ export default function CalendarPage() {
                                         </div>
                                     );
                                 } else { // It's a task without a specific time
-                                    const task = item as Task;
                                     const isTaskDueToday = isSameDay(task.dueDate, today);
                                     return (
                                         <div key={task.id} onClick={() => handleTaskClick(task)} className="flex gap-4 p-4 mb-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer">
@@ -410,7 +387,7 @@ export default function CalendarPage() {
                             })
                           ) : (
                             <div className="text-center py-6">
-                              <p className="text-sm text-muted-foreground">No tasks or appointments for this day.</p>
+                              <p className="text-sm text-muted-foreground">No tasks for this day.</p>
                             </div>
                           )}
                         </div>
@@ -455,5 +432,3 @@ export default function CalendarPage() {
     </>
   );
 }
-
-    

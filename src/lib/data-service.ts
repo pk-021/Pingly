@@ -17,7 +17,6 @@ let classRoutine: CalendarEvent[] = [
     title: 'CS101 Lecture',
     startTime: new Date(new Date().setHours(9, 0, 0, 0)),
     endTime: new Date(new Date().setHours(10, 30, 0, 0)),
-    isOfficial: true,
     roomNumber: 'A-101',
   },
   {
@@ -25,7 +24,6 @@ let classRoutine: CalendarEvent[] = [
     title: 'Office Hours',
     startTime: new Date(new Date().setHours(14, 0, 0, 0)),
     endTime: new Date(new Date().setHours(16, 0, 0, 0)),
-    isOfficial: true,
     roomNumber: 'Faculty Office 21B',
   },
   {
@@ -33,28 +31,10 @@ let classRoutine: CalendarEvent[] = [
     title: 'Faculty Board Meeting',
     startTime: new Date(new Date(tomorrow).setHours(15, 0, 0, 0)),
     endTime: new Date(new Date(tomorrow).setHours(16, 30, 0, 0)),
-    isOfficial: true,
     roomNumber: 'Conference Hall A',
   },
 ];
 
-let userEvents: CalendarEvent[] = [
-  {
-    id: 'ue1',
-    title: 'Project Phoenix Meeting',
-    startTime: new Date(new Date().setHours(11, 0, 0, 0)),
-    endTime: new Date(new Date().setHours(12, 0, 0, 0)),
-    isOfficial: false,
-    roomNumber: 'Library Room 3',
-  },
-  {
-    id: 'ue2',
-    title: 'Dentist Appointment',
-    startTime: new Date(new Date(tomorrow).setHours(11, 0, 0, 0)),
-    endTime: new Date(new Date(tomorrow).setHours(12, 0, 0, 0)),
-    isOfficial: false,
-  },
-];
 
 let mockTasks: Task[] = [
   {
@@ -100,7 +80,26 @@ let mockTasks: Task[] = [
     priority: 'Medium',
     dueDate: new Date(new Date().setDate(today.getDate() + 5)),
     completed: false,
-  }
+  },
+  {
+    id: 'ue1',
+    title: 'Project Phoenix Meeting',
+    priority: 'Medium',
+    dueDate: today,
+    startTime: new Date(new Date().setHours(11, 0, 0, 0)),
+    endTime: new Date(new Date().setHours(12, 0, 0, 0)),
+    roomNumber: 'Library Room 3',
+    completed: false,
+  },
+  {
+    id: 'ue2',
+    title: 'Dentist Appointment',
+    priority: 'Medium',
+    dueDate: tomorrow,
+    startTime: new Date(new Date(tomorrow).setHours(11, 0, 0, 0)),
+    endTime: new Date(new Date(tomorrow).setHours(12, 0, 0, 0)),
+    completed: false,
+  },
 ];
 
 
@@ -111,10 +110,6 @@ export async function getClassRoutine(): Promise<CalendarEvent[]> {
     const dayOfWeek = getDay(new Date());
     const routineForToday = classRoutine.filter(event => getDay(event.startTime) === dayOfWeek);
     return Promise.resolve(classRoutine);
-}
-export async function getUserEvents(): Promise<CalendarEvent[]> {
-  await new Promise(res => setTimeout(res, 500));
-  return Promise.resolve(userEvents);
 }
 
 export async function getTasks(): Promise<Task[]> {
@@ -130,16 +125,6 @@ export async function addTask(task: Omit<Task, 'id' | 'completed'>): Promise<Tas
         completed: false,
     };
     mockTasks.push(newTask);
-    if(newTask.startTime && newTask.endTime) {
-        // We add scheduled tasks to userEvents for conflict detection
-        userEvents.push({
-            id: `evt-${newTask.id}`,
-            title: newTask.title,
-            startTime: newTask.startTime,
-            endTime: newTask.endTime,
-            isOfficial: false
-        })
-    }
     return Promise.resolve(newTask);
 }
 
@@ -150,27 +135,6 @@ export async function updateTask(updatedTask: Task): Promise<Task> {
         throw new Error("Task not found");
     }
     mockTasks[index] = updatedTask;
-
-    const eventId = `evt-${updatedTask.id}`;
-    const eventIndex = userEvents.findIndex(e => e.id === eventId);
-    
-    if (updatedTask.startTime && updatedTask.endTime) {
-        const newEvent = {
-            id: eventId,
-            title: updatedTask.title,
-            startTime: updatedTask.startTime,
-            endTime: updatedTask.endTime,
-            isOfficial: false
-        };
-        if (eventIndex > -1) {
-            userEvents[eventIndex] = newEvent;
-        } else {
-            userEvents.push(newEvent);
-        }
-    } else if (eventIndex > -1) {
-        userEvents.splice(eventIndex, 1);
-    }
-
     return Promise.resolve(updatedTask);
 }
 
@@ -181,22 +145,14 @@ export async function deleteTask(taskId: string): Promise<{ success: true }> {
         throw new Error("Task not found");
     }
     mockTasks.splice(index, 1);
-
-    const eventId = `evt-${taskId}`;
-    const eventIndex = userEvents.findIndex(e => e.id === eventId);
-    if (eventIndex > -1) {
-        userEvents.splice(eventIndex, 1);
-    }
-
     return Promise.resolve({ success: true });
 }
 
-export async function addRoutineEvent(event: Omit<CalendarEvent, 'id' | 'isOfficial'>): Promise<CalendarEvent> {
+export async function addRoutineEvent(event: Omit<CalendarEvent, 'id'>): Promise<CalendarEvent> {
     await new Promise(res => setTimeout(res, 300));
     const newEvent: CalendarEvent = {
         ...event,
         id: `cr${Date.now()}`,
-        isOfficial: true,
     };
     classRoutine.push(newEvent);
     return Promise.resolve(newEvent);
