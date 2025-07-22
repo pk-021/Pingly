@@ -337,7 +337,6 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, events, ta
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        <SelectItem value="">None</SelectItem>
                                         {availableSlots.startSlots.map(slot => (
                                             <SelectItem key={slot.toISOString()} value={format(slot, 'HH:mm')}>
                                                 {format(slot, 'p')}
@@ -362,7 +361,6 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, events, ta
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        <SelectItem value="">None</SelectItem>
                                         {availableSlots.endSlots
                                             .filter(slot => {
                                                 const startTime = form.getValues('startTime');
