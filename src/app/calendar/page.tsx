@@ -19,18 +19,21 @@ import {
   formatDistanceToNow,
   getDay,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle, ListTodo, PlusCircle, CalendarCheck, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle, ListTodo, PlusCircle, CalendarCheck, BookOpen, Dot } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getTasks, addTask, updateTask, deleteTask, getClassRoutine } from '@/lib/data-service';
+import { getNepaliHolidays } from '@/lib/nepali-data-service';
 import { cn } from '@/lib/utils';
-import type { CalendarEvent, Task, DisplayItem } from '@/lib/types';
+import type { CalendarEvent, Task, NepaliHoliday } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TaskDialog } from '@/components/task-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 const workingHours = { start: 9, end: 17 }; // 9 AM to 5 PM
 
@@ -75,25 +78,42 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [classRoutine, setClassRoutine] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [nepaliHolidays, setNepaliHolidays] = useState<NepaliHoliday[]>([]);
   const [emptySlots, setEmptySlots] = useState<{start: Date, end: Date}[]>([]);
   const today = useMemo(() => startOfDay(new Date()), []);
   const { toast } = useToast();
 
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
+  const [showNepaliCalendar, setShowNepaliCalendar] = useState(false);
 
+
+  useEffect(() => {
+    const setting = localStorage.getItem('nepali-calendar-enabled') === 'true';
+    setShowNepaliCalendar(setting);
+  }, []);
 
   const loadData = async () => {
     setIsLoading(true);
-    const [fetchedTasks, fetchedClassRoutine] = await Promise.all([getTasks(), getClassRoutine()]);
-    setTasks(fetchedTasks);
-    setClassRoutine(fetchedClassRoutine);
+    const promises = [getTasks(), getClassRoutine()];
+    if (showNepaliCalendar) {
+        promises.push(getNepaliHolidays());
+    }
+    const [fetchedTasks, fetchedClassRoutine, fetchedHolidays] = await Promise.all(promises);
+    
+    setTasks(fetchedTasks as Task[]);
+    setClassRoutine(fetchedClassRoutine as CalendarEvent[]);
+    if (fetchedHolidays) {
+        setNepaliHolidays(fetchedHolidays as NepaliHoliday[]);
+    } else {
+        setNepaliHolidays([]);
+    }
     setIsLoading(false);
   };
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [showNepaliCalendar]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -193,8 +213,29 @@ export default function CalendarPage() {
     return grouped;
   }, [tasks]);
 
+   const holidaysByDate = useMemo(() => {
+    if (!showNepaliCalendar) return {};
+    return nepaliHolidays.reduce((acc, holiday) => {
+      const dateKey = format(startOfDay(holiday.date), 'yyyy-MM-dd');
+      if (!acc[dateKey]) {
+        acc[dateKey] = [];
+      }
+      acc[dateKey].push(holiday);
+      return acc;
+    }, {} as Record<string, NepaliHoliday[]>);
+  }, [nepaliHolidays, showNepaliCalendar]);
+
+
   const selectedDayTasks = useMemo(() => {
-    return tasksByDate[format(selectedDate, 'yyyy-MM-dd')] || [];
+    const dateKey = format(selectedDate, 'yyyy-MM-dd');
+    const dayTasks = tasksByDate[dateKey] || [];
+    return dayTasks.filter(task => !task.startTime);
+  }, [tasksByDate, selectedDate]);
+  
+  const selectedDayScheduledTasks = useMemo(() => {
+    const dateKey = format(selectedDate, 'yyyy-MM-dd');
+    const dayTasks = tasksByDate[dateKey] || [];
+    return dayTasks.filter(task => !!task.startTime);
   }, [tasksByDate, selectedDate]);
   
   const selectedDayRoutine = useMemo(() => {
@@ -205,7 +246,7 @@ export default function CalendarPage() {
 
 
   return (
-    <>
+    <TooltipProvider>
       <TaskDialog 
         isOpen={isTaskDialogOpen}
         onClose={handleTaskDialogClose}
@@ -246,7 +287,10 @@ export default function CalendarPage() {
               ))}
             </div>
             <div className="grid grid-cols-7 grid-rows-6">
-              {days.map(day => (
+              {days.map(day => {
+                const dateKey = format(day, 'yyyy-MM-dd');
+                const dayHolidays = holidaysByDate[dateKey] || [];
+                return (
                 <div
                   key={day.toString()}
                   onClick={() => setSelectedDate(day)}
@@ -258,7 +302,19 @@ export default function CalendarPage() {
                     isSameDay(day, selectedDate) && 'bg-primary/10 ring-2 ring-primary'
                   )}
                 >
-                  <div className='flex justify-end'>
+                  <div className='flex justify-between items-start'>
+                    <div className="flex">
+                      {dayHolidays.map(holiday => (
+                        <Tooltip key={holiday.name}>
+                          <TooltipTrigger asChild>
+                            <Dot className="text-red-500 -ml-2 -mt-1"/>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{holiday.name}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </div>
                     <div
                       className={cn(
                         'w-7 h-7 flex items-center justify-center rounded-full text-sm',
@@ -270,7 +326,7 @@ export default function CalendarPage() {
                   </div>
                   <div className="flex-1 overflow-y-auto -mx-2">
                     <div className="space-y-1 px-2">
-                      {(tasksByDate[format(day, 'yyyy-MM-dd')] || []).slice(0, 2).map(item => (
+                      {(tasksByDate[dateKey] || []).slice(0, 2).map(item => (
                         <div
                           key={item.id}
                            className={cn(
@@ -282,15 +338,15 @@ export default function CalendarPage() {
                           {item.startTime ? `${format(item.startTime, 'HH:mm')} ` : ''}{item.title}
                         </div>
                       ))}
-                      {(tasksByDate[format(day, 'yyyy-MM-dd')] || []).length > 2 && (
+                      {(tasksByDate[dateKey] || []).length > 2 && (
                          <p className="text-xs text-muted-foreground truncate pl-1">
-                           {(tasksByDate[format(day, 'yyyy-MM-dd')] || []).length - 2} more...
+                           {(tasksByDate[dateKey] || []).length - 2} more...
                          </p>
                       )}
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </CardContent>
         </Card>
@@ -345,59 +401,67 @@ export default function CalendarPage() {
                               <CalendarCheck className="w-5 h-5"/>
                               Scheduled Tasks
                           </h3>
-                           {selectedDayTasks.length > 0 ? (
-                            selectedDayTasks.map(task => {
-                                if (task.startTime && task.endTime) { // It's a scheduled task
-                                    return (
-                                        <div key={task.id} className="flex gap-4 p-4 mb-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer"
-                                          onClick={() => handleTaskClick(task)}
-                                        >
-                                          <div className="font-semibold text-sm text-center">
-                                              <p>{format(task.startTime, 'HH:mm')}</p>
-                                              <p className="text-muted-foreground">-</p>
-                                              <p>{format(task.endTime, 'HH:mm')}</p>
+                           {selectedDayScheduledTasks.length > 0 ? (
+                            selectedDayScheduledTasks.map(task => (
+                                <div key={task.id} className="flex gap-4 p-4 mb-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer"
+                                  onClick={() => handleTaskClick(task)}
+                                >
+                                  <div className="font-semibold text-sm text-center">
+                                      <p>{format(task.startTime, 'HH:mm')}</p>
+                                      <p className="text-muted-foreground">-</p>
+                                      <p>{format(task.endTime, 'HH:mm')}</p>
+                                  </div>
+                                  <div className="flex-1">
+                                      <div className="flex justify-between items-start">
+                                      <div>
+                                          <h3 className="font-semibold">{task.title}</h3>
+                                          <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                                          {task.roomNumber && (
+                                              <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {task.roomNumber}</span>
+                                          )}
                                           </div>
-                                          <div className="flex-1">
-                                              <div className="flex justify-between items-start">
-                                              <div>
-                                                  <h3 className="font-semibold">{task.title}</h3>
-                                                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                                                  {task.roomNumber && (
-                                                      <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {task.roomNumber}</span>
-                                                  )}
-                                                  </div>
-                                              </div>
-                                              </div>
-                                          </div>
-                                        </div>
-                                    );
-                                } else { // It's a task without a specific time
-                                    const isTaskDueToday = isSameDay(task.dueDate, today);
-                                    return (
-                                        <div key={task.id} onClick={() => handleTaskClick(task)} className="flex gap-4 p-4 mb-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer">
-                                            <div className="pt-1">
-                                                <ListTodo className={cn("w-5 h-5 text-primary", task.completed && "text-gray-400")} />
-                                            </div>
-                                            <div className="flex-1">
-                                                <h3 className={cn("font-semibold", task.completed && "line-through text-muted-foreground")}>{task.title}</h3>
-                                                <p className="text-sm text-muted-foreground">
-                                                  {task.completed ? "Completed" : isTaskDueToday
-                                                    ? `Due ${formatDistanceToNow(task.dueDate, { addSuffix: true })}`
-                                                    : `Due on ${format(task.dueDate, 'MMM d')}`
-                                                  }
-                                                </p>
-                                            </div>
-                                            <Badge variant={task.priority === 'High' ? 'destructive' : task.priority === 'Medium' ? 'secondary' : 'outline'}>{task.priority}</Badge>
-                                        </div>
-                                    );
-                                }
-                            })
+                                      </div>
+                                      </div>
+                                  </div>
+                                </div>
+                            ))
                           ) : (
                             <div className="text-center py-6">
-                              <p className="text-sm text-muted-foreground">No tasks for this day.</p>
+                              <p className="text-sm text-muted-foreground">No scheduled tasks for this day.</p>
                             </div>
                           )}
                         </div>
+
+                        {(selectedDayTasks.length > 0) && <Separator className="my-6" />}
+
+                        {selectedDayTasks.length > 0 && (
+                           <div>
+                            <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
+                                <ListTodo className="w-5 h-5"/>
+                                All-day Tasks
+                            </h3>
+                            {selectedDayTasks.map(task => {
+                                const isTaskDueToday = isSameDay(task.dueDate, today);
+                                return (
+                                    <div key={task.id} onClick={() => handleTaskClick(task)} className="flex gap-4 p-4 mb-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer">
+                                        <div className="pt-1">
+                                            <ListTodo className={cn("w-5 h-5 text-primary", task.completed && "text-gray-400")} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className={cn("font-semibold", task.completed && "line-through text-muted-foreground")}>{task.title}</h3>
+                                            <p className="text-sm text-muted-foreground">
+                                              {task.completed ? "Completed" : isTaskDueToday
+                                                ? `Due ${formatDistanceToNow(task.dueDate, { addSuffix: true })}`
+                                                : `Due on ${format(task.dueDate, 'MMM d')}`
+                                              }
+                                            </p>
+                                        </div>
+                                        <Badge variant={task.priority === 'High' ? 'destructive' : task.priority === 'Medium' ? 'secondary' : 'outline'}>{task.priority}</Badge>
+                                    </div>
+                                );
+                            })}
+                          </div>
+                        )}
                       </>
                     )}
 
@@ -436,6 +500,8 @@ export default function CalendarPage() {
           </Card>
         </div>
       </div>
-    </>
+    </TooltipProvider>
   );
 }
+
+    

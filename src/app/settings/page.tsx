@@ -1,9 +1,27 @@
+
+'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Bell } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function SettingsPage() {
+  const [isNepaliCalendarEnabled, setIsNepaliCalendarEnabled] = useState(false);
+
+  useEffect(() => {
+    const storedValue = localStorage.getItem('nepali-calendar-enabled');
+    setIsNepaliCalendarEnabled(storedValue === 'true');
+  }, []);
+
+  const handleSwitchChange = (checked: boolean) => {
+    setIsNepaliCalendarEnabled(checked);
+    localStorage.setItem('nepali-calendar-enabled', String(checked));
+    // Optional: Show a toast to confirm the setting has been saved.
+    // We might also want to trigger a data refresh globally if the app was more complex.
+    window.location.reload(); // Simple way to force a refresh to see changes
+  };
+
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-headline text-primary">Settings</h1>
@@ -20,13 +38,19 @@ export default function SettingsPage() {
                     Nepali Calendar Integration
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                    Receive additional notifications based on the Nepali calendar.
+                    Show public holidays from the Nepali calendar in your schedule.
                 </p>
             </div>
-            <Switch id="nepali-calendar" />
+            <Switch
+              id="nepali-calendar"
+              checked={isNepaliCalendarEnabled}
+              onCheckedChange={handleSwitchChange}
+            />
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    

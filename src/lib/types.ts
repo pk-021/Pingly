@@ -21,3 +21,10 @@ export type Task = {
 };
 
 export type DisplayItem = CalendarEvent | Task;
+
+export type NepaliHoliday = {
+  date: Date;
+  name: string;
+};
+
+    
