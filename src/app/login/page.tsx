@@ -2,61 +2,36 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/firebase";
-import { signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 
 export default function LoginPage() {
     const router = useRouter();
-    const [user, authLoading] = useAuthState(auth);
+    const [user, loading] = useAuthState(auth);
     const [error, setError] = useState<string | null>(null);
-    const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
 
     const signInWithGoogle = async () => {
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithRedirect(auth, provider);
+            await signInWithPopup(auth, provider);
         } catch (error: any) {
-            console.error("Error initiating redirect sign-in: ", error);
-            setError(error.message);
+            console.error("Error during sign-in:", error);
+            if (error.code === 'auth/popup-closed-by-user') {
+                setError("Sign-in popup closed before completion. Please try again.");
+            } else {
+                setError(error.message);
+            }
         }
     };
-
-    useEffect(() => {
-        const handleRedirectResult = async () => {
-            try {
-                const result = await getRedirectResult(auth);
-                if (result) {
-                    // This will trigger the useAuthState hook to update and redirect.
-                    // No need to manually push, the effect below will handle it.
-                }
-            } catch (error: any) {
-                console.error("Error getting redirect result: ", error);
-                if (error.code === 'auth/popup-closed-by-user') {
-                    setError("The sign-in popup was closed before completion. Please try again.");
-                } else if (error.code === 'auth/cancelled-popup-request') {
-                    // This can happen if the user clicks the button multiple times.
-                    // We can often ignore it as another request is likely in flight.
-                } else {
-                    setError(error.message);
-                }
-            } finally {
-                setIsProcessingRedirect(false);
-            }
-        };
-
-        handleRedirectResult();
-    }, []);
     
     useEffect(() => {
-        // Redirect if user is logged in and we are not in the middle of auth processes.
-        if (!authLoading && user) {
+        // Redirect if user is logged in
+        if (!loading && user) {
             router.push('/');
         }
-    }, [user, authLoading, router]);
-
-    const loading = authLoading || isProcessingRedirect;
+    }, [user, loading, router]);
 
     return (
         <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
