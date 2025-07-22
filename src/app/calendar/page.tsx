@@ -18,6 +18,7 @@ import {
   isSameDay as isSameDate,
   formatDistanceToNow,
   getDay,
+  addDays,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle, ListTodo, PlusCircle, CalendarCheck, BookOpen, Dot } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -165,21 +166,10 @@ export default function CalendarPage() {
   }
 
   const monthStart = startOfMonth(currentDate);
-
-  const firstDay = startOfWeek(startOfMonth(currentDate));
-  const lastDay = endOfWeek(endOfMonth(currentDate));
-
-  let days = eachDayOfInterval({ start: firstDay, end: lastDay });
-  if (days.length < 42) {
-    const extraDays = eachDayOfInterval({
-        start: new Date(days[days.length - 1].getTime() + 86400000), // one day after last day
-        end: new Date(days[days.length - 1].getTime() + (42 - days.length) * 86400000)
-    })
-    days = [...days, ...extraDays];
-  }
-  if (days.length > 42) {
-    days.length = 42;
-  }
+  const firstDay = startOfWeek(monthStart);
+  const lastDay = addDays(firstDay, 41); // Ensure 6 weeks (42 days)
+  
+  const days = eachDayOfInterval({ start: firstDay, end: lastDay });
   
   const tasksByDate = useMemo(() => {
     const grouped = tasks.reduce((acc, item) => {
@@ -407,9 +397,9 @@ export default function CalendarPage() {
                                   onClick={() => handleTaskClick(task)}
                                 >
                                   <div className="font-semibold text-sm text-center">
-                                      <p>{format(task.startTime, 'HH:mm')}</p>
+                                      <p>{format(task.startTime!, 'HH:mm')}</p>
                                       <p className="text-muted-foreground">-</p>
-                                      <p>{format(task.endTime, 'HH:mm')}</p>
+                                      <p>{format(task.endTime!, 'HH:mm')}</p>
                                   </div>
                                   <div className="flex-1">
                                       <div className="flex justify-between items-start">
@@ -503,5 +493,3 @@ export default function CalendarPage() {
     </TooltipProvider>
   );
 }
-
-    
