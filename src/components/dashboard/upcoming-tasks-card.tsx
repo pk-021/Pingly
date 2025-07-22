@@ -4,8 +4,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { getTasks, updateTask, addTask, deleteTask, getUserEvents, getClassRoutine } from "@/lib/data-service";
 import type { Task, CalendarEvent } from "@/lib/types";
-import { formatDistanceToNow, format } from 'date-fns';
-import { ListTodo, CheckCircle2, Circle, ChevronUp, ChevronDown, Equal, PlusCircle, Clock } from "lucide-react";
+import { formatDistanceToNow, format, isToday, isPast, endOfDay } from 'date-fns';
+import { ListTodo, CheckCircle2, Circle, ChevronUp, ChevronDown, Equal, PlusCircle, Clock, AlertCircle } from "lucide-react";
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,19 @@ const priorityIcons = {
     High: <ChevronUp className="w-4 h-4 text-red-500" />,
     Medium: <Equal className="w-4 h-4 text-yellow-500" />,
     Low: <ChevronDown className="w-4 h-4 text-green-500" />,
+};
+
+const getTaskStatus = (task: Task) => {
+    if (task.completed) {
+        return { text: 'Completed', color: '' };
+    }
+    if (isPast(endOfDay(task.dueDate))) {
+        return { text: 'Overdue', color: 'text-red-500' };
+    }
+    if (isToday(task.dueDate)) {
+        return { text: 'Due today', color: '' };
+    }
+    return { text: `Due ${formatDistanceToNow(task.dueDate, { addSuffix: true })}`, color: '' };
 };
 
 export default function UpcomingTasksCard() {
@@ -130,14 +143,16 @@ export default function UpcomingTasksCard() {
                         </div>
                     ) : filteredTasks.length > 0 ? (
                         <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                            {filteredTasks.map(task => (
+                            {filteredTasks.map(task => {
+                                const status = getTaskStatus(task);
+                                return (
                                 <div key={task.id} onClick={() => handleTaskClick(task)} className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer">
-                                    {task.completed ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <Circle className="w-5 h-5 text-muted-foreground" />}
+                                    {task.completed ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : (status.text === 'Overdue' ? <AlertCircle className="w-5 h-5 text-red-500"/> :<Circle className="w-5 h-5 text-muted-foreground" />) }
                                     <div className="flex-1">
                                         <p className={cn("font-medium", task.completed && "line-through text-muted-foreground")}>{task.title}</p>
-                                        <div className="text-sm text-muted-foreground">
+                                        <div className={cn("text-sm text-muted-foreground", status.color)}>
                                             <span>
-                                                {task.completed ? 'Completed' : `Due ${formatDistanceToNow(task.dueDate, { addSuffix: true })}`}
+                                                {status.text}
                                             </span>
                                             {task.startTime && task.endTime && (
                                                 <span className='ml-2 inline-flex items-center gap-1'>
@@ -152,7 +167,7 @@ export default function UpcomingTasksCard() {
                                         <Badge variant={task.priority === 'High' ? 'destructive' : task.priority === 'Medium' ? 'secondary' : 'outline'}>{task.priority}</Badge>
                                     </div>
                                 </div>
-                            ))}
+                            )})}
                         </div>
                     ) : (
                         <div className="text-center py-10">
