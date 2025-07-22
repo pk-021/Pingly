@@ -3,32 +3,43 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getUserEvents, getClassRoutine } from "@/lib/data-service";
 import type { CalendarEvent } from "@/lib/types";
-import { isToday, format } from 'date-fns';
+import { isToday, format, getDay } from 'date-fns';
 import { CalendarClock, Pin, BookOpen, CalendarCheck } from "lucide-react";
 import { Badge } from "../ui/badge";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Separator } from "../ui/separator";
+import { Skeleton } from "../ui/skeleton";
 
 export default function DailyScheduleCard() {
-    const [todayUserEvents, setTodayUserEvents] = useState<CalendarEvent[]>([]);
-    const [todayRoutine, setTodayRoutine] = useState<CalendarEvent[]>([]);
+    const [userEvents, setUserEvents] = useState<CalendarEvent[]>([]);
+    const [classRoutine, setClassRoutine] = useState<CalendarEvent[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const loadData = async () => {
+        setIsLoading(true);
+        const [fetchedUserEvents, fetchedClassRoutine] = await Promise.all([getUserEvents(), getClassRoutine()]);
+        setUserEvents(fetchedUserEvents);
+        setClassRoutine(fetchedClassRoutine);
+        setIsLoading(false);
+    };
 
     useEffect(() => {
-        async function loadData() {
-            const [userEvents, classRoutine] = await Promise.all([getUserEvents(), getClassRoutine()]);
-            
-            const filteredUserEvents = userEvents
-                .filter(event => isToday(event.startTime))
-                .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-            setTodayUserEvents(filteredUserEvents);
-
-            const filteredRoutine = classRoutine
-                .filter(event => isToday(event.startTime))
-                .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-            setTodayRoutine(filteredRoutine);
-        }
         loadData();
     }, []);
+
+    const todayUserEvents = useMemo(() => {
+        return userEvents
+            .filter(event => isToday(event.startTime))
+            .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    }, [userEvents]);
+
+    const todayRoutine = useMemo(() => {
+        const todayDay = getDay(new Date());
+        return classRoutine
+            .filter(event => getDay(event.startTime) === todayDay)
+            .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    }, [classRoutine]);
+
 
     const hasItems = todayUserEvents.length > 0 || todayRoutine.length > 0;
 
@@ -42,7 +53,12 @@ export default function DailyScheduleCard() {
                 <CardDescription>Your appointments and class routine for today.</CardDescription>
             </CardHeader>
             <CardContent>
-                {hasItems ? (
+                {isLoading ? (
+                    <div className="space-y-6">
+                         <Skeleton className="h-24 w-full" />
+                         <Skeleton className="h-24 w-full" />
+                    </div>
+                ) : hasItems ? (
                     <div className="space-y-6">
                         {todayRoutine.length > 0 && (
                             <div>
@@ -53,9 +69,9 @@ export default function DailyScheduleCard() {
                                 <div className="space-y-4">
                                     {todayRoutine.map(event => (
                                         <div key={event.id} className="flex gap-4 p-4 rounded-lg border bg-accent/10">
-                                            <div className="flex flex-col items-center">
+                                            <div className="flex flex-col items-center w-16 text-center">
                                                 <p className="font-semibold text-base">{format(event.startTime, 'HH:mm')}</p>
-                                                <div className="h-full w-px bg-border my-1"></div>
+                                                <div className="h-4 w-px bg-border my-1"></div>
                                                 <p className="text-muted-foreground text-sm">{format(event.endTime, 'HH:mm')}</p>
                                             </div>
                                             <div className="flex-1">
@@ -76,14 +92,14 @@ export default function DailyScheduleCard() {
                              <div>
                                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
                                     <CalendarCheck className="w-5 h-5 text-primary"/>
-                                    Your Schedule
+                                    Appointments & Tasks
                                 </h3>
                                 <div className="space-y-4">
                                     {todayUserEvents.map(event => (
                                         <div key={event.id} className="flex gap-4 p-4 rounded-lg border bg-card hover:bg-secondary/50 transition-colors">
-                                            <div className="flex flex-col items-center">
+                                            <div className="flex flex-col items-center w-16 text-center">
                                                 <p className="font-semibold text-base">{format(event.startTime, 'HH:mm')}</p>
-                                                <div className="h-full w-px bg-border my-1"></div>
+                                                <div className="h-4 w-px bg-border my-1"></div>
                                                 <p className="text-muted-foreground text-sm">{format(event.endTime, 'HH:mm')}</p>
                                             </div>
                                             <div className="flex-1">
