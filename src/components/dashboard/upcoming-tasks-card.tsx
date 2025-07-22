@@ -37,7 +37,7 @@ export default function UpcomingTasksCard() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [routine, setRoutine] = useState<CalendarEvent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed'>('upcoming');
+    const [filter, setFilter] = useState<'upcoming' | 'completed' | 'all'>('upcoming');
     const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
     const { toast } = useToast();
@@ -97,11 +97,11 @@ export default function UpcomingTasksCard() {
     }
 
     const filteredTasks = useMemo(() => {
-        const today = startOfDay(new Date());
+        const today = new Date();
         if (filter === 'all') return tasks;
         if (filter === 'completed') return tasks.filter(task => task.completed);
         // Upcoming tasks are those that are not completed and are due after today
-        return tasks.filter(task => !task.completed && isAfter(task.dueDate, today));
+        return tasks.filter(task => !task.completed && isAfter(task.dueDate, endOfDay(today)));
     }, [filter, tasks]);
 
     return (
