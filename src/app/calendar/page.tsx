@@ -183,13 +183,6 @@ export default function CalendarPage() {
     return dayTasks.filter(task => !!task.startTime);
   }, [tasksByDate, selectedDate]);
   
-  const selectedDayRoutine = useMemo(() => {
-    const dayOfWeek = getDay(selectedDate);
-    return classRoutine.filter(event => getDay(event.startTime) === dayOfWeek)
-                       .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-  }, [classRoutine, selectedDate]);
-
-
   return (
     <TooltipProvider>
       <TaskDialog 
@@ -271,15 +264,7 @@ export default function CalendarPage() {
                   </div>
                   <div className="flex-1 overflow-y-auto -mx-2 text-xs">
                     <div className="space-y-1 px-2">
-                       {(classRoutine.filter(e => getDay(e.startTime) === getDay(day))).slice(0, 1).map(item => (
-                        <div
-                          key={item.id}
-                          className="p-1 rounded-md truncate bg-accent/20 text-accent-foreground/80"
-                        >
-                          {item.title}
-                        </div>
-                      ))}
-                      {(tasksByDate[dateKey] || []).slice(0, 2).map(item => (
+                      {(tasksByDate[dateKey] || []).slice(0, 3).map(item => (
                         <div
                           key={item.id}
                            className={cn(
@@ -291,9 +276,9 @@ export default function CalendarPage() {
                           {item.startTime ? `${format(item.startTime, 'HH:mm')} ` : ''}{item.title}
                         </div>
                       ))}
-                      {(tasksByDate[dateKey] || []).length > 2 && (
+                      {(tasksByDate[dateKey] || []).length > 3 && (
                          <p className="text-muted-foreground truncate pl-1">
-                           +{(tasksByDate[dateKey] || []).length - 2} more
+                           +{(tasksByDate[dateKey] || []).length - 3} more
                          </p>
                       )}
                     </div>
@@ -320,35 +305,6 @@ export default function CalendarPage() {
                       </div>
                     ) : (
                       <>
-                        {selectedDayRoutine.length > 0 && (
-                          <div>
-                            <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
-                              <BookOpen className="w-5 h-5"/>
-                              Class Routine
-                            </h3>
-                            <div className="space-y-3">
-                              {selectedDayRoutine.map(event => (
-                                <div key={event.id} className="flex gap-4 p-4 rounded-lg border bg-accent/10">
-                                  <div className="font-semibold text-sm text-center">
-                                      <p>{format(event.startTime, 'HH:mm')}</p>
-                                      <p className="text-muted-foreground">-</p>
-                                      <p>{format(event.endTime, 'HH:mm')}</p>
-                                  </div>
-                                  <div className="flex-1">
-                                    <h3 className="font-semibold">{event.title}</h3>
-                                    {event.roomNumber && (
-                                      <p className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                                        <Pin className="w-4 h-4" /> {event.roomNumber}
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            <Separator className="my-6" />
-                          </div>
-                        )}
-                        
                         <div>
                           <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
                               <CalendarCheck className="w-5 h-5"/>
@@ -385,7 +341,7 @@ export default function CalendarPage() {
                           )}
                         </div>
 
-                        {(selectedDayTasks.length > 0) && <Separator className="my-6" />}
+                        {(selectedDayScheduledTasks.length > 0 && selectedDayTasks.length > 0) && <Separator className="my-6" />}
 
                         {selectedDayTasks.length > 0 && (
                            <div>
@@ -415,6 +371,12 @@ export default function CalendarPage() {
                             })}
                           </div>
                         )}
+
+                        {selectedDayScheduledTasks.length === 0 && selectedDayTasks.length === 0 && (
+                             <div className="text-center py-10">
+                                <p className="text-muted-foreground">No tasks for this day.</p>
+                            </div>
+                        )}
                       </>
                     )}
                 </div>
@@ -426,3 +388,5 @@ export default function CalendarPage() {
     </TooltipProvider>
   );
 }
+
+    
