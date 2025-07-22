@@ -34,22 +34,30 @@ import { useToast } from '@/hooks/use-toast';
 
 const workingHours = { start: 9, end: 17 }; // 9 AM to 5 PM
 
-function getEmptySlots(events: CalendarEvent[], date: Date) {
+function getEmptySlots(events: (CalendarEvent | Task)[], date: Date) {
   const startOfWorkDay = addHours(startOfDay(date), workingHours.start);
   const endOfWorkDay = addHours(startOfDay(date), workingHours.end);
 
   const todaysEvents = events
-    .filter(event => isSameDate(event.startTime, date))
-    .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    .filter(event => {
+        if (!event.startTime || !event.endTime) return false;
+        // Check day of week for routine, full date for tasks
+        if ('priority' in event) { // It's a Task
+            return isSameDate(event.startTime, date);
+        } else { // It's a CalendarEvent (routine)
+            return getDay(event.startTime) === getDay(date);
+        }
+    })
+    .sort((a, b) => a.startTime!.getTime() - b.startTime!.getTime());
 
   const emptySlots = [];
   let lastEventEnd = startOfWorkDay;
 
   for (const event of todaysEvents) {
-    if (event.startTime > lastEventEnd) {
-      emptySlots.push({ start: lastEventEnd, end: event.startTime });
+    if (event.startTime! > lastEventEnd) {
+      emptySlots.push({ start: lastEventEnd, end: event.startTime! });
     }
-    lastEventEnd = event.endTime > lastEventEnd ? event.endTime : lastEventEnd;
+    lastEventEnd = event.endTime! > lastEventEnd ? event.endTime! : lastEventEnd;
   }
   
   if (lastEventEnd < endOfWorkDay) {
@@ -89,8 +97,8 @@ export default function CalendarPage() {
 
   useEffect(() => {
     if (!isLoading) {
-      const allItems = [...classRoutine, ...tasks.filter(t => t.startTime).map(t => ({...t} as CalendarEvent))];
-      setEmptySlots(getEmptySlots(allItems as CalendarEvent[], selectedDate));
+      const allItems = [...classRoutine, ...tasks];
+      setEmptySlots(getEmptySlots(allItems, selectedDate));
     }
   }, [selectedDate, classRoutine, tasks, isLoading]);
 
@@ -153,9 +161,8 @@ export default function CalendarPage() {
     days.length = 42;
   }
   
-  const itemsByDate = useMemo(() => {
-    const allItems: Task[] = [...tasks];
-    const grouped = allItems.reduce((acc, item) => {
+  const tasksByDate = useMemo(() => {
+    const grouped = tasks.reduce((acc, item) => {
         const date = item.dueDate;
         if (date) {
             const dateKey = format(startOfDay(date), 'yyyy-MM-dd');
@@ -186,9 +193,9 @@ export default function CalendarPage() {
     return grouped;
   }, [tasks]);
 
-  const selectedDayUserItems = useMemo(() => {
-    return itemsByDate[format(selectedDate, 'yyyy-MM-dd')] || [];
-  }, [itemsByDate, selectedDate]);
+  const selectedDayTasks = useMemo(() => {
+    return tasksByDate[format(selectedDate, 'yyyy-MM-dd')] || [];
+  }, [tasksByDate, selectedDate]);
   
   const selectedDayRoutine = useMemo(() => {
     const dayOfWeek = getDay(selectedDate);
@@ -263,7 +270,7 @@ export default function CalendarPage() {
                   </div>
                   <div className="flex-1 overflow-y-auto -mx-2">
                     <div className="space-y-1 px-2">
-                      {(itemsByDate[format(day, 'yyyy-MM-dd')] || []).slice(0, 2).map(item => (
+                      {(tasksByDate[format(day, 'yyyy-MM-dd')] || []).slice(0, 2).map(item => (
                         <div
                           key={item.id}
                            className={cn(
@@ -275,9 +282,9 @@ export default function CalendarPage() {
                           {item.startTime ? `${format(item.startTime, 'HH:mm')} ` : ''}{item.title}
                         </div>
                       ))}
-                      {(itemsByDate[format(day, 'yyyy-MM-dd')] || []).length > 2 && (
+                      {(tasksByDate[format(day, 'yyyy-MM-dd')] || []).length > 2 && (
                          <p className="text-xs text-muted-foreground truncate pl-1">
-                           {(itemsByDate[format(day, 'yyyy-MM-dd')] || []).length - 2} more...
+                           {(tasksByDate[format(day, 'yyyy-MM-dd')] || []).length - 2} more...
                          </p>
                       )}
                     </div>
@@ -338,8 +345,8 @@ export default function CalendarPage() {
                               <CalendarCheck className="w-5 h-5"/>
                               Scheduled Tasks
                           </h3>
-                           {selectedDayUserItems.length > 0 ? (
-                            selectedDayUserItems.map(task => {
+                           {selectedDayTasks.length > 0 ? (
+                            selectedDayTasks.map(task => {
                                 if (task.startTime && task.endTime) { // It's a scheduled task
                                     return (
                                         <div key={task.id} className="flex gap-4 p-4 mb-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer"

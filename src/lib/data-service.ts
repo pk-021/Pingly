@@ -84,6 +84,7 @@ let mockTasks: Task[] = [
   {
     id: 'ue1',
     title: 'Project Phoenix Meeting',
+    description: 'Strategy meeting for the upcoming Project Phoenix launch.',
     priority: 'Medium',
     dueDate: today,
     startTime: new Date(new Date().setHours(11, 0, 0, 0)),
@@ -94,6 +95,7 @@ let mockTasks: Task[] = [
   {
     id: 'ue2',
     title: 'Dentist Appointment',
+    description: 'Annual check-up.',
     priority: 'Medium',
     dueDate: tomorrow,
     startTime: new Date(new Date(tomorrow).setHours(11, 0, 0, 0)),
@@ -106,9 +108,6 @@ let mockTasks: Task[] = [
 // Simulate API calls
 export async function getClassRoutine(): Promise<CalendarEvent[]> {
     await new Promise(res => setTimeout(res, 500));
-    // Simulate weekly routine by filtering based on day of the week
-    const dayOfWeek = getDay(new Date());
-    const routineForToday = classRoutine.filter(event => getDay(event.startTime) === dayOfWeek);
     return Promise.resolve(classRoutine);
 }
 
