@@ -13,13 +13,15 @@ import {
   LayoutDashboard,
   CalendarDays,
   Settings,
-  User,
   BookOpen,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
+import { Skeleton } from './ui/skeleton';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -30,6 +32,7 @@ const navItems = [
 
 export function AppSidebarContent() {
   const pathname = usePathname();
+  const [user, loading] = useAuthState(auth);
 
   return (
     <>
@@ -77,16 +80,26 @@ export function AppSidebarContent() {
       </SidebarMenu>
 
       <SidebarFooter className='p-2'>
-        <Button variant="ghost" className='w-full justify-start gap-2 p-2 h-auto'>
-            <Avatar className="h-8 w-8">
-              <AvatarImage src="https://placehold.co/40x40" alt="User" data-ai-hint="profile picture" />
-              <AvatarFallback>U</AvatarFallback>
-            </Avatar>
-            <div className="text-left">
-                <p className="font-medium text-sm">Faculty User</p>
-                <p className="text-xs text-muted-foreground">user@university.edu</p>
+        {loading ? (
+            <div className="flex items-center gap-2 p-2">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="space-y-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-32" />
+                </div>
             </div>
-        </Button>
+        ) : user ? (
+            <Button variant="ghost" className='w-full justify-start gap-2 p-2 h-auto'>
+                <Avatar className="h-8 w-8">
+                <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} data-ai-hint="profile picture" />
+                <AvatarFallback>{user.displayName?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="text-left">
+                    <p className="font-medium text-sm">{user.displayName}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                </div>
+            </Button>
+        ) : null}
       </SidebarFooter>
     </>
   );
