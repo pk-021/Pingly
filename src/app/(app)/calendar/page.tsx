@@ -170,14 +170,12 @@ export default function CalendarPage() {
 
   const selectedDayTasks = useMemo(() => {
     const dateKey = format(selectedDate, 'yyyy-MM-dd');
-    const dayTasks = tasksByDate[dateKey] || [];
-    return dayTasks.filter(task => !task.startTime);
+    return (tasksByDate[dateKey] || []).filter(task => !task.startTime);
   }, [tasksByDate, selectedDate]);
   
   const selectedDayScheduledTasks = useMemo(() => {
     const dateKey = format(selectedDate, 'yyyy-MM-dd');
-    const dayTasks = tasksByDate[dateKey] || [];
-    return dayTasks.filter(task => !!task.startTime);
+    return (tasksByDate[dateKey] || []).filter(task => !!task.startTime);
   }, [tasksByDate, selectedDate]);
   
   const selectedDayRoutine = useMemo(() => {
@@ -198,7 +196,7 @@ export default function CalendarPage() {
         routine={classRoutine}
         tasks={tasks}
       />
-      <div className="flex flex-col-reverse lg:flex-row gap-8 h-full">
+      <div className="flex flex-col lg:flex-row gap-8 h-full">
         
         <div className="w-full lg:w-[350px] flex-shrink-0">
           <Card className="sticky top-6">
@@ -322,105 +320,104 @@ export default function CalendarPage() {
           </Card>
         </div>
 
-        <Card className="flex-1 flex flex-col max-h-[calc(100vh-80px)]">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">
-                {format(currentDate, 'MMMM yyyy')}
-              </h2>
-              <div className="flex items-center gap-2">
-                 <Button onClick={handleAddTaskClick}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Task
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" onClick={() => { setCurrentDate(new Date()); setSelectedDate(startOfDay(new Date())); }}>
-                  Today
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col">
-            <div className="grid grid-cols-7 text-center font-medium text-muted-foreground border-b">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="py-2">{day}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 grid-rows-6 flex-1">
-              {days.map(day => {
-                const dateKey = format(day, 'yyyy-MM-dd');
-                const dayHolidays = holidaysByDate[dateKey] || [];
-                const dayTasks = tasksByDate[dateKey] || [];
-                
-                return (
-                <div
-                  key={day.toString()}
-                  onClick={() => setSelectedDate(day)}
-                  className={cn(
-                    'border-r border-b p-2 flex flex-col cursor-pointer transition-colors',
-                    isSameMonth(day, monthStart) ? 'bg-card' : 'bg-muted/50',
-                    !isSameMonth(day, monthStart) && 'text-muted-foreground',
-                    'hover:bg-secondary',
-                    isSameDay(day, selectedDate) && 'bg-primary/10 ring-2 ring-primary'
-                  )}
-                >
-                  <div className='flex justify-between items-start'>
-                    <div className="flex">
-                      {dayHolidays.map(holiday => (
-                        <Tooltip key={holiday.name}>
-                          <TooltipTrigger asChild>
-                            <Dot className="text-red-500 -ml-2 -mt-1"/>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{holiday.name}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
-                    </div>
-                    <div
-                      className={cn(
-                        'w-7 h-7 flex items-center justify-center rounded-full text-sm',
-                        isSameDay(day, today) && 'bg-primary text-primary-foreground'
-                      )}
-                    >
-                      {format(day, 'd')}
-                    </div>
-                  </div>
-                  <div className="flex-1 overflow-y-auto -mx-2 text-xs">
-                    <div className="space-y-1 px-2">
-                      {dayTasks.slice(0, 3).map(item => (
-                        <div
-                          key={item.id}
-                           className={cn(
-                              "p-1 rounded-md truncate",
-                              item.startTime ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800",
-                              item.completed && "line-through bg-gray-200 text-gray-500"
-                          )}
-                        >
-                          {item.startTime ? `${format(item.startTime, 'HH:mm')} ` : ''}{item.title}
-                        </div>
-                      ))}
-                      {dayTasks.length > 3 && (
-                         <p className="text-muted-foreground truncate pl-1">
-                           +{dayTasks.length - 3} more
-                         </p>
-                      )}
-                    </div>
-                  </div>
+        <div className="flex-1 flex flex-col h-full">
+          <Card className="flex-1 flex flex-col">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">
+                  {format(currentDate, 'MMMM yyyy')}
+                </h2>
+                <div className="flex items-center gap-2">
+                  <Button onClick={handleAddTaskClick}>
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Add Task
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" onClick={() => { setCurrentDate(new Date()); setSelectedDate(startOfDay(new Date())); }}>
+                    Today
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
-              )})}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col">
+              <div className="grid grid-cols-7 text-center font-medium text-muted-foreground border-b">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  <div key={day} className="py-2">{day}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 grid-rows-6 flex-1">
+                {days.map(day => {
+                  const dateKey = format(day, 'yyyy-MM-dd');
+                  const dayHolidays = holidaysByDate[dateKey] || [];
+                  const dayTasks = tasksByDate[dateKey] || [];
+                  
+                  return (
+                  <div
+                    key={day.toString()}
+                    onClick={() => setSelectedDate(day)}
+                    className={cn(
+                      'border-r border-b p-2 flex flex-col cursor-pointer transition-colors',
+                      isSameMonth(day, monthStart) ? 'bg-card' : 'bg-muted/50',
+                      !isSameMonth(day, monthStart) && 'text-muted-foreground',
+                      'hover:bg-secondary',
+                      isSameDay(day, selectedDate) && 'bg-primary/10 ring-2 ring-primary'
+                    )}
+                  >
+                    <div className='flex justify-between items-start'>
+                      <div className="flex">
+                        {dayHolidays.map(holiday => (
+                          <Tooltip key={holiday.name}>
+                            <TooltipTrigger asChild>
+                              <Dot className="text-red-500 -ml-2 -mt-1"/>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{holiday.name}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
+                      </div>
+                      <div
+                        className={cn(
+                          'w-7 h-7 flex items-center justify-center rounded-full text-sm',
+                          isSameDay(day, today) && 'bg-primary text-primary-foreground'
+                        )}
+                      >
+                        {format(day, 'd')}
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto -mx-2 text-xs">
+                      <div className="space-y-1 px-2">
+                        {dayTasks.slice(0, 3).map(item => (
+                          <div
+                            key={item.id}
+                            className={cn(
+                                "p-1 rounded-md truncate",
+                                item.startTime ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800",
+                                item.completed && "line-through bg-gray-200 text-gray-500"
+                            )}
+                          >
+                            {item.startTime ? `${format(item.startTime, 'HH:mm')} ` : ''}{item.title}
+                          </div>
+                        ))}
+                        {dayTasks.length > 3 && (
+                          <p className="text-muted-foreground truncate pl-1">
+                            +{dayTasks.length - 3} more
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )})}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </TooltipProvider>
   );
 }
-
-
-
