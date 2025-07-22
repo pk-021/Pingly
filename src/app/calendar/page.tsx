@@ -14,7 +14,6 @@ import {
   addMonths,
   subMonths,
   startOfDay,
-  addHours,
   isSameDay as isSameDate,
   formatDistanceToNow,
   getDay,
@@ -35,42 +34,6 @@ import { TaskDialog } from '@/components/task-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-
-const workingHours = { start: 9, end: 17 }; // 9 AM to 5 PM
-
-function getEmptySlots(events: (CalendarEvent | Task)[], date: Date) {
-  const startOfWorkDay = addHours(startOfDay(date), workingHours.start);
-  const endOfWorkDay = addHours(startOfDay(date), workingHours.end);
-
-  const todaysEvents = events
-    .filter(event => {
-        if (!event.startTime || !event.endTime) return false;
-        // Check day of week for routine, full date for tasks
-        if ('priority' in event) { // It's a Task
-            return isSameDate(event.startTime, date);
-        } else { // It's a CalendarEvent (routine)
-            return getDay(event.startTime) === getDay(date);
-        }
-    })
-    .sort((a, b) => a.startTime!.getTime() - b.startTime!.getTime());
-
-  const emptySlots = [];
-  let lastEventEnd = startOfWorkDay;
-
-  for (const event of todaysEvents) {
-    if (event.startTime! > lastEventEnd) {
-      emptySlots.push({ start: lastEventEnd, end: event.startTime! });
-    }
-    lastEventEnd = event.endTime! > lastEventEnd ? event.endTime! : lastEventEnd;
-  }
-  
-  if (lastEventEnd < endOfWorkDay) {
-    emptySlots.push({ start: lastEventEnd, end: endOfWorkDay });
-  }
-
-  return emptySlots.filter(slot => slot.start < slot.end);
-}
-
 const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
 
 export default function CalendarPage() {
@@ -80,7 +43,6 @@ export default function CalendarPage() {
   const [classRoutine, setClassRoutine] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [nepaliHolidays, setNepaliHolidays] = useState<NepaliHoliday[]>([]);
-  const [emptySlots, setEmptySlots] = useState<{start: Date, end: Date}[]>([]);
   const today = useMemo(() => startOfDay(new Date()), []);
   const { toast } = useToast();
 
@@ -115,13 +77,6 @@ export default function CalendarPage() {
   useEffect(() => {
     loadData();
   }, [showNepaliCalendar]);
-
-  useEffect(() => {
-    if (!isLoading) {
-      const allItems = [...classRoutine, ...tasks];
-      setEmptySlots(getEmptySlots(allItems, selectedDate));
-    }
-  }, [selectedDate, classRoutine, tasks, isLoading]);
 
   const handleTaskDialogClose = () => {
     setIsTaskDialogOpen(false);
@@ -247,7 +202,7 @@ export default function CalendarPage() {
         tasks={tasks}
       />
       <div className="flex flex-col lg:flex-row gap-8 h-full">
-        <Card className="flex-1">
+        <Card className="flex-1 flex flex-col">
           <CardHeader>
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">
@@ -270,13 +225,13 @@ export default function CalendarPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 flex flex-col">
             <div className="grid grid-cols-7 text-center font-medium text-muted-foreground border-b">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                 <div key={day} className="py-2">{day}</div>
               ))}
             </div>
-            <div className="grid grid-cols-7 grid-rows-6">
+            <div className="grid grid-cols-7 grid-rows-6 flex-1">
               {days.map(day => {
                 const dateKey = format(day, 'yyyy-MM-dd');
                 const dayHolidays = holidaysByDate[dateKey] || [];
@@ -285,7 +240,7 @@ export default function CalendarPage() {
                   key={day.toString()}
                   onClick={() => setSelectedDate(day)}
                   className={cn(
-                    'border-r border-b p-2 flex flex-col cursor-pointer transition-colors h-28',
+                    'border-r border-b p-2 flex flex-col cursor-pointer transition-colors',
                     isSameMonth(day, monthStart) ? 'bg-card' : 'bg-muted/50',
                     !isSameMonth(day, monthStart) && 'text-muted-foreground',
                     'hover:bg-secondary',
@@ -314,13 +269,21 @@ export default function CalendarPage() {
                       {format(day, 'd')}
                     </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto -mx-2">
+                  <div className="flex-1 overflow-y-auto -mx-2 text-xs">
                     <div className="space-y-1 px-2">
+                       {(classRoutine.filter(e => getDay(e.startTime) === getDay(day))).slice(0, 1).map(item => (
+                        <div
+                          key={item.id}
+                          className="p-1 rounded-md truncate bg-accent/20 text-accent-foreground/80"
+                        >
+                          {item.title}
+                        </div>
+                      ))}
                       {(tasksByDate[dateKey] || []).slice(0, 2).map(item => (
                         <div
                           key={item.id}
                            className={cn(
-                              "text-xs p-1 rounded-md truncate",
+                              "p-1 rounded-md truncate",
                               item.startTime ? "bg-secondary text-secondary-foreground" : "bg-blue-100 text-blue-800",
                               item.completed && "line-through bg-gray-200 text-gray-500"
                           )}
@@ -329,8 +292,8 @@ export default function CalendarPage() {
                         </div>
                       ))}
                       {(tasksByDate[dateKey] || []).length > 2 && (
-                         <p className="text-xs text-muted-foreground truncate pl-1">
-                           {(tasksByDate[dateKey] || []).length - 2} more...
+                         <p className="text-muted-foreground truncate pl-1">
+                           +{(tasksByDate[dateKey] || []).length - 2} more
                          </p>
                       )}
                     </div>
@@ -454,36 +417,6 @@ export default function CalendarPage() {
                         )}
                       </>
                     )}
-
-                    <Separator className="my-6" />
-
-                    <div>
-                      <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
-                          <Clock className="w-5 h-5"/>
-                          Available Slots
-                      </h3>
-                       {isLoading ? (
-                         <div className="space-y-3">
-                           <Skeleton className="h-12 w-full" />
-                           <Skeleton className="h-12 w-full" />
-                         </div>
-                       ) : emptySlots.length > 0 ? (
-                          <div className="space-y-3">
-                          {emptySlots.map((slot, index) => (
-                              <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200 text-green-800">
-                                  <CheckCircle className="w-5 h-5" />
-                                  <p className="font-medium text-sm">
-                                      <span className="font-bold">{format(slot.start, 'HH:mm')}</span> - <span className="font-bold">{format(slot.end, 'HH:mm')}</span>
-                                  </p>
-                              </div>
-                          ))}
-                          </div>
-                      ) : (
-                          <div className="text-center py-6">
-                          <p className="text-sm text-muted-foreground">No empty slots available.</p>
-                          </div>
-                      )}
-                    </div>
                 </div>
               </ScrollArea>
             </CardContent>
