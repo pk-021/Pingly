@@ -149,7 +149,6 @@ export default function UpcomingTasksCard() {
                                 const status = getTaskStatus(task);
                                 return (
                                 <div key={task.id} onClick={() => handleTaskClick(task)} className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer">
-                                    <Circle className="w-5 h-5 text-muted-foreground" />
                                     <div className="flex-1">
                                         <p className={cn("font-medium", task.completed && "line-through text-muted-foreground")}>{task.title}</p>
                                         <div className={cn("text-sm text-muted-foreground", status.color)}>
