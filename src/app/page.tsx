@@ -7,25 +7,15 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import Link from 'next/link';
 import { auth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { useEffect } from "react";
 import { AppSidebarContent } from "@/components/app-sidebar-content";
 import { Sidebar, SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function Home() {
-  const router = useRouter();
   const [user, loading] = useAuthState(auth);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
-
-
   if (loading || !user) {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>; // Or a proper skeleton loader
   }
 
   return (
