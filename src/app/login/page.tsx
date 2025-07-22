@@ -9,8 +9,9 @@ import { useAuthState } from "react-firebase-hooks/auth";
 
 export default function LoginPage() {
     const router = useRouter();
-    const [user, loading] = useAuthState(auth);
+    const [user, authLoading] = useAuthState(auth);
     const [error, setError] = useState<string | null>(null);
+    const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
 
     const signInWithGoogle = async () => {
         const provider = new GoogleAuthProvider();
@@ -28,25 +29,34 @@ export default function LoginPage() {
                 const result = await getRedirectResult(auth);
                 if (result) {
                     // This will trigger the useAuthState hook to update and redirect.
-                    router.push('/');
+                    // No need to manually push, the effect below will handle it.
                 }
             } catch (error: any) {
                 console.error("Error getting redirect result: ", error);
-                setError(error.message);
+                if (error.code === 'auth/popup-closed-by-user') {
+                    setError("The sign-in popup was closed before completion. Please try again.");
+                } else if (error.code === 'auth/cancelled-popup-request') {
+                    // This can happen if the user clicks the button multiple times.
+                    // We can often ignore it as another request is likely in flight.
+                } else {
+                    setError(error.message);
+                }
+            } finally {
+                setIsProcessingRedirect(false);
             }
         };
 
-        // We only want to run this on initial load when not already loading or authenticated.
-        if (!loading && !user) {
-            handleRedirectResult();
-        }
-    }, [loading, user, router]);
+        handleRedirectResult();
+    }, []);
     
     useEffect(() => {
-        if (!loading && user) {
+        // Redirect if user is logged in and we are not in the middle of auth processes.
+        if (!authLoading && user) {
             router.push('/');
         }
-    }, [user, loading, router]);
+    }, [user, authLoading, router]);
+
+    const loading = authLoading || isProcessingRedirect;
 
     return (
         <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
