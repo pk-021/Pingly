@@ -2,7 +2,7 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/firebase";
-import { signInWithPopup, GoogleAuthProvider, type AuthError } from "firebase/auth";
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -14,12 +14,7 @@ export default function LoginPage() {
             await signInWithPopup(auth, provider);
             router.push('/');
         } catch (error) {
-            const authError = error as AuthError;
-            if (authError.code === 'auth/popup-closed-by-user') {
-                console.error("Login popup was closed by the user or blocked by the browser. Please ensure popups are enabled for this site.");
-            } else {
-                console.error("Error signing in with Google: ", authError);
-            }
+            console.error("Error signing in with Google: ", error);
         }
     };
 
