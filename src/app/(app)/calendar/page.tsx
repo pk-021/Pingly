@@ -6,21 +6,18 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   format,
   startOfMonth,
-  endOfMonth,
   eachDayOfInterval,
   startOfWeek,
-  endOfWeek,
   isSameMonth,
   isSameDay,
   addMonths,
   subMonths,
   startOfDay,
-  isSameDay as isSameDate,
-  formatDistanceToNow,
   getDay,
   addDays,
+  formatDistanceToNow,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle, ListTodo, PlusCircle, CalendarCheck, BookOpen, Dot, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pin, BookOpen, ListTodo, PlusCircle, CalendarDays, Dot } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,7 +47,6 @@ export default function CalendarPage() {
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
   const [showNepaliCalendar, setShowNepaliCalendar] = useState(false);
-
 
   useEffect(() => {
     const setting = localStorage.getItem('nepali-calendar-enabled') === 'true';
@@ -202,7 +198,7 @@ export default function CalendarPage() {
         routine={classRoutine}
         tasks={tasks}
       />
-      <div className="flex flex-col lg:flex-row gap-8 h-full">
+      <div className="flex flex-col lg:flex-row gap-8 h-[calc(100vh-80px)]">
         <Card className="flex-1 flex flex-col">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -236,6 +232,8 @@ export default function CalendarPage() {
               {days.map(day => {
                 const dateKey = format(day, 'yyyy-MM-dd');
                 const dayHolidays = holidaysByDate[dateKey] || [];
+                const dayTasks = tasksByDate[dateKey] || [];
+                
                 return (
                 <div
                   key={day.toString()}
@@ -272,7 +270,7 @@ export default function CalendarPage() {
                   </div>
                   <div className="flex-1 overflow-y-auto -mx-2 text-xs">
                     <div className="space-y-1 px-2">
-                      {(tasksByDate[dateKey] || []).slice(0, 3).map(item => (
+                      {dayTasks.slice(0, 3).map(item => (
                         <div
                           key={item.id}
                            className={cn(
@@ -284,9 +282,9 @@ export default function CalendarPage() {
                           {item.startTime ? `${format(item.startTime, 'HH:mm')} ` : ''}{item.title}
                         </div>
                       ))}
-                      {(tasksByDate[dateKey] || []).length > 3 && (
+                      {dayTasks.length > 3 && (
                          <p className="text-muted-foreground truncate pl-1">
-                           +{(tasksByDate[dateKey] || []).length - 3} more
+                           +{dayTasks.length - 3} more
                          </p>
                       )}
                     </div>
@@ -422,3 +420,4 @@ export default function CalendarPage() {
     </TooltipProvider>
   );
 }
+
