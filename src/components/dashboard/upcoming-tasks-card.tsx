@@ -108,7 +108,6 @@ export default function UpcomingTasksCard() {
                                 <ListTodo className="w-6 h-6 text-primary" />
                                 Tasks
                             </CardTitle>
-                            <CardDescription>Your tasks and deadlines.</CardDescription>
                         </div>
                         <Select value={filter} onValueChange={(value) => setFilter(value as any)}>
                             <SelectTrigger className="w-[130px]">
