@@ -17,9 +17,19 @@ import {
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { useEffect } from "react";
 
 export default function Home() {
   const router = useRouter();
+  const [user, loading] = useAuthState(auth);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
 
   const handleLogout = async () => {
     try {
@@ -29,6 +39,10 @@ export default function Home() {
       console.error("Error signing out: ", error);
     }
   };
+
+  if (loading || !user) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="space-y-8">
