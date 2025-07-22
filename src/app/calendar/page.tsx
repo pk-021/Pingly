@@ -19,7 +19,7 @@ import {
   getDay,
   addDays,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle, ListTodo, PlusCircle, CalendarCheck, BookOpen, Dot } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pin, Clock, CheckCircle, ListTodo, PlusCircle, CalendarCheck, BookOpen, Dot, CalendarDays } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -183,6 +183,13 @@ export default function CalendarPage() {
     return dayTasks.filter(task => !!task.startTime);
   }, [tasksByDate, selectedDate]);
   
+  const selectedDayRoutine = useMemo(() => {
+    const dayOfWeek = getDay(selectedDate);
+    return classRoutine
+      .filter(event => getDay(event.startTime) === dayOfWeek)
+      .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+  }, [classRoutine, selectedDate]);
+
   return (
     <TooltipProvider>
       <TaskDialog 
@@ -305,17 +312,45 @@ export default function CalendarPage() {
                       </div>
                     ) : (
                       <>
+                        {selectedDayRoutine.length > 0 && (
+                          <div>
+                            <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
+                                <BookOpen className="w-5 h-5"/>
+                                Class Routine
+                            </h3>
+                            {selectedDayRoutine.map(event => (
+                              <div key={event.id} className="flex gap-4 p-4 mb-3 rounded-lg border bg-accent/10">
+                                <div className="font-semibold text-sm text-center w-16">
+                                    <p>{format(event.startTime, 'HH:mm')}</p>
+                                    <p className="text-muted-foreground">-</p>
+                                    <p>{format(event.endTime, 'HH:mm')}</p>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-semibold">{event.title}</h3>
+                                    {event.roomNumber && (
+                                        <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                                            <Pin className="w-4 h-4" /> {event.roomNumber}
+                                        </div>
+                                    )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {(selectedDayRoutine.length > 0 && (selectedDayScheduledTasks.length > 0 || selectedDayTasks.length > 0)) && <Separator className="my-6" />}
+
                         <div>
                           <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
-                              <CalendarCheck className="w-5 h-5"/>
-                              Scheduled Tasks
+                              <CalendarDays className="w-5 h-5"/>
+                              Tasks
                           </h3>
                            {selectedDayScheduledTasks.length > 0 ? (
                             selectedDayScheduledTasks.map(task => (
                                 <div key={task.id} className="flex gap-4 p-4 mb-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer"
                                   onClick={() => handleTaskClick(task)}
                                 >
-                                  <div className="font-semibold text-sm text-center">
+                                  <div className="font-semibold text-sm text-center w-16">
                                       <p>{format(task.startTime!, 'HH:mm')}</p>
                                       <p className="text-muted-foreground">-</p>
                                       <p>{format(task.endTime!, 'HH:mm')}</p>
@@ -323,18 +358,16 @@ export default function CalendarPage() {
                                   <div className="flex-1">
                                       <div className="flex justify-between items-start">
                                       <div>
-                                          <h3 className="font-semibold">{task.title}</h3>
-                                          <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                                          <h3 className={cn("font-semibold", task.completed && "line-through text-muted-foreground")}>{task.title}</h3>
                                           {task.roomNumber && (
-                                              <span className="flex items-center gap-2"><Pin className="w-4 h-4" /> {task.roomNumber}</span>
+                                              <span className="flex items-center gap-2 mt-2 text-sm text-muted-foreground"><Pin className="w-4 h-4" /> {task.roomNumber}</span>
                                           )}
-                                          </div>
                                       </div>
                                       </div>
                                   </div>
                                 </div>
                             ))
-                          ) : (
+                          ) : (selectedDayTasks.length === 0 &&
                             <div className="text-center py-6">
                               <p className="text-sm text-muted-foreground">No scheduled tasks for this day.</p>
                             </div>
@@ -372,9 +405,9 @@ export default function CalendarPage() {
                           </div>
                         )}
 
-                        {selectedDayScheduledTasks.length === 0 && selectedDayTasks.length === 0 && (
+                        {selectedDayRoutine.length === 0 && selectedDayScheduledTasks.length === 0 && selectedDayTasks.length === 0 && (
                              <div className="text-center py-10">
-                                <p className="text-muted-foreground">No tasks for this day.</p>
+                                <p className="text-muted-foreground">No routine or tasks for this day.</p>
                             </div>
                         )}
                       </>
