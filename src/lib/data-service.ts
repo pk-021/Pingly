@@ -1,199 +1,169 @@
 
+'use client';
+
 import type { CalendarEvent, Task, UserProfile } from './types';
-import { getDay } from 'date-fns';
+import { 
+    getFirestore, 
+    collection, 
+    addDoc, 
+    getDocs, 
+    doc, 
+    updateDoc, 
+    deleteDoc, 
+    where, 
+    query,
+    Timestamp,
+    writeBatch
+} from 'firebase/firestore';
+import { auth, app } from './firebase';
 
-// In a real application, this data would be fetched from a database or API.
-// For now, we'll use mock data based on the new structure.
+const db = getFirestore(app);
 
-const today = new Date();
-const tomorrow = new Date();
-tomorrow.setDate(today.getDate() + 1);
-const nextWeek = new Date();
-nextWeek.setDate(today.getDate() + 7);
-
-const MOCK_USER_ID = "user123";
-
-let classRoutine: CalendarEvent[] = [
-  {
-    id: 'cr1',
-    title: 'CS101 Lecture',
-    dayOfWeek: 1, // Monday
-    startTime: new Date(new Date().setHours(9, 0, 0, 0)),
-    endTime: new Date(new Date().setHours(10, 30, 0, 0)),
-    roomNumber: 'A-101',
-  },
-  {
-    id: 'cr2',
-    title: 'Office Hours',
-    dayOfWeek: 2, // Tuesday
-    startTime: new Date(new Date().setHours(14, 0, 0, 0)),
-    endTime: new Date(new Date().setHours(16, 0, 0, 0)),
-    roomNumber: 'Faculty Office 21B',
-  },
-  {
-    id: 'cr3',
-    title: 'Faculty Board Meeting',
-    dayOfWeek: 3, // Wednesday
-    startTime: new Date(new Date().setHours(15, 0, 0, 0)),
-    endTime: new Date(new Date().setHours(16, 30, 0, 0)),
-    roomNumber: 'Conference Hall A',
-  },
-];
-
-
-let mockTasks: Task[] = [
-  {
-    id: 't1',
-    title: 'Grade Midterm Exams',
-    description: 'Go through all the papers from the CS101 midterm exam and upload the grades to the portal.',
-    priority: 'High',
-    category: 'Assessment',
-    dueDate: today,
-    startTime: new Date(new Date().setHours(16, 0, 0, 0)),
-    endTime: new Date(new Date().setHours(17, 0, 0, 0)),
-    roomNumber: 'Faculty Office 21B',
-    completed: false,
-    creatorId: MOCK_USER_ID,
-  },
-  {
-    id: 't2',
-    title: 'Prepare slides for CS202',
-    description: 'Create a new presentation for the upcoming lecture on Advanced Algorithms.',
-    priority: 'Medium',
-    category: 'Class',
-    dueDate: nextWeek,
-    completed: false,
-    creatorId: MOCK_USER_ID,
-  },
-  {
-    id: 't3',
-    title: 'Submit research paper draft',
-    description: 'Finalize the draft for the paper on "Quantum Computing Applications" and submit it to the journal.',
-    priority: 'High',
-    category: 'Research',
-    dueDate: new Date(new Date().setDate(today.getDate() + 3)),
-    completed: false,
-    creatorId: MOCK_USER_ID,
-  },
-  {
-    id: 't4',
-    title: 'Update course website',
-    description: 'Upload the latest syllabus and add the new lecture notes for week 5.',
-    priority: 'Low',
-    category: 'Administrative',
-    dueDate: nextWeek,
-    completed: true,
-    completionNotes: 'Updated syllabus and added new lecture notes.',
-    creatorId: MOCK_USER_ID,
-  },
-  {
-    id: 't5',
-    title: 'Review student applications',
-    description: 'Go through the new applications for the research assistant position.',
-    priority: 'Medium',
-    category: 'Administrative',
-    dueDate: new Date(new Date().setDate(today.getDate() + 5)),
-    completed: false,
-    creatorId: MOCK_USER_ID,
-  },
-  {
-    id: 'ue1',
-    title: 'Project Phoenix Meeting',
-    description: 'Strategy meeting for the upcoming Project Phoenix launch.',
-    priority: 'Medium',
-    category: 'Meeting',
-    dueDate: today,
-    startTime: new Date(new Date().setHours(11, 0, 0, 0)),
-    endTime: new Date(new Date().setHours(12, 0, 0, 0)),
-    roomNumber: 'Library Room 3',
-    completed: false,
-    creatorId: MOCK_USER_ID,
-  },
-  {
-    id: 'ue2',
-    title: 'Dentist Appointment',
-    description: 'Annual check-up.',
-    priority: 'Medium',
-    category: 'Personal',
-    dueDate: tomorrow,
-    startTime: new Date(new Date(tomorrow).setHours(11, 0, 0, 0)),
-    endTime: new Date(new Date(tomorrow).setHours(12, 0, 0, 0)),
-    roomNumber: 'Dental Clinic, City Center',
-    completed: false,
-    creatorId: MOCK_USER_ID,
-  },
-];
-
-
-// Simulate API calls
-export async function getClassRoutine(): Promise<CalendarEvent[]> {
-    await new Promise(res => setTimeout(res, 500));
-    return Promise.resolve(classRoutine);
+// Helper to convert Firestore Timestamps to JS Dates in a task
+function taskFromDoc(doc: any): Task {
+    const data = doc.data();
+    return {
+        id: doc.id,
+        ...data,
+        dueDate: (data.dueDate as Timestamp)?.toDate(),
+        startTime: (data.startTime as Timestamp)?.toDate(),
+        endTime: (data.endTime as Timestamp)?.toDate(),
+    };
 }
 
+// Helper to convert Firestore Timestamps to JS Dates in a routine event
+function routineFromDoc(doc: any): CalendarEvent {
+    const data = doc.data();
+    return {
+        id: doc.id,
+        ...data,
+        startTime: (data.startTime as Timestamp)?.toDate(),
+        endTime: (data.endTime as Timestamp)?.toDate(),
+    };
+}
+
+
+// --- User Management ---
+export async function createUserProfile(user: { uid: string, email: string | null, displayName: string | null }): Promise<void> {
+    const userRef = doc(db, "users", user.uid);
+    const newUserProfile: Omit<UserProfile, 'id'> = {
+        email: user.email || "",
+        displayName: user.displayName || "New User",
+        department: "", // Can be updated by the user later
+        createdAt: new Date(),
+    };
+    await addDoc(collection(db, 'users'), newUserProfile);
+}
+
+
+// --- Task Management ---
 export async function getTasks(): Promise<Task[]> {
-  await new Promise(res => setTimeout(res, 500));
-  return Promise.resolve(mockTasks);
+    const user = auth.currentUser;
+    if (!user) return [];
+
+    try {
+        const tasksRef = collection(db, "tasks");
+        // Query for tasks created by the user OR assigned to the user
+        const q = query(tasksRef, where('creatorId', '==', user.uid));
+        // In a real scenario, you'd also query for tasks where assigneeId == user.uid
+        // const qAssigned = query(tasksRef, where('assigneeId', '==', user.uid));
+        // const [creatorTasksSnapshot, assignedTasksSnapshot] = await Promise.all([getDocs(q), getDocs(qAssigned)]);
+        
+        const querySnapshot = await getDocs(q);
+
+        const tasks: Task[] = [];
+        querySnapshot.forEach((doc) => {
+            tasks.push(taskFromDoc(doc));
+        });
+        
+        return tasks;
+    } catch (error) {
+        console.error("Error getting tasks: ", error);
+        return [];
+    }
 }
 
 export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>): Promise<Task> {
-    await new Promise(res => setTimeout(res, 300));
-    const newTask: Task = {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not authenticated");
+
+    const newTaskData = {
         ...task,
-        id: `t${Date.now()}`,
+        creatorId: user.uid,
         completed: false,
-        creatorId: MOCK_USER_ID, // In a real app, this would be the logged-in user's ID
     };
-    mockTasks.push(newTask);
-    return Promise.resolve(newTask);
+
+    const docRef = await addDoc(collection(db, "tasks"), newTaskData);
+    
+    return {
+        id: docRef.id,
+        ...newTaskData,
+    };
 }
 
 export async function updateTask(updatedTask: Task): Promise<Task> {
-    await new Promise(res => setTimeout(res, 300));
-    const index = mockTasks.findIndex(t => t.id === updatedTask.id);
-    if (index === -1) {
-        throw new Error("Task not found");
-    }
-    mockTasks[index] = updatedTask;
-    return Promise.resolve(updatedTask);
+    const taskRef = doc(db, "tasks", updatedTask.id);
+    // The 'id' is not stored in the Firestore document itself
+    const { id, ...taskData } = updatedTask;
+    await updateDoc(taskRef, taskData as any);
+    return updatedTask;
 }
 
 export async function deleteTask(taskId: string): Promise<{ success: true }> {
-    await new Promise(res => setTimeout(res, 300));
-    const index = mockTasks.findIndex(t => t.id === taskId);
-    if (index === -1) {
-        throw new Error("Task not found");
+    const taskRef = doc(db, "tasks", taskId);
+    await deleteDoc(taskRef);
+    return { success: true };
+}
+
+
+// --- Class Routine Management ---
+export async function getClassRoutine(): Promise<CalendarEvent[]> {
+    const user = auth.currentUser;
+    if (!user) return [];
+
+    try {
+        const routineRef = collection(db, "routines");
+        const q = query(routineRef, where('creatorId', '==', user.uid));
+        const querySnapshot = await getDocs(q);
+
+        const routine: CalendarEvent[] = [];
+        querySnapshot.forEach((doc) => {
+            routine.push(routineFromDoc(doc));
+        });
+
+        return routine;
+    } catch (error) {
+        console.error("Error getting class routine: ", error);
+        return [];
     }
-    mockTasks.splice(index, 1);
-    return Promise.resolve({ success: true });
 }
 
 export async function addRoutineEvent(event: Omit<CalendarEvent, 'id'>): Promise<CalendarEvent> {
-    await new Promise(res => setTimeout(res, 300));
-    const newEvent: CalendarEvent = {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not authenticated");
+
+    const newEventData = {
         ...event,
-        id: `cr${Date.now()}`,
+        creatorId: user.uid,
     };
-    classRoutine.push(newEvent);
-    return Promise.resolve(newEvent);
+
+    const docRef = await addDoc(collection(db, "routines"), newEventData);
+
+    return {
+        id: docRef.id,
+        ...newEventData,
+    };
 }
 
 export async function updateRoutineEvent(updatedEvent: CalendarEvent): Promise<CalendarEvent> {
-    await new Promise(res => setTimeout(res, 300));
-    const index = classRoutine.findIndex(e => e.id === updatedEvent.id);
-    if (index === -1) {
-        throw new Error("Event not found");
-    }
-    classRoutine[index] = updatedEvent;
-    return Promise.resolve(updatedEvent);
+    const eventRef = doc(db, "routines", updatedEvent.id);
+    const { id, ...eventData } = updatedEvent;
+    await updateDoc(eventRef, eventData as any);
+    return updatedEvent;
 }
 
 export async function deleteRoutineEvent(eventId: string): Promise<{ success: true }> {
-    await new Promise(res => setTimeout(res, 300));
-    const index = classRoutine.findIndex(e => e.id === eventId);
-    if (index === -1) {
-        throw new Error("Event not found");
-    }
-    classRoutine.splice(index, 1);
-    return Promise.resolve({ success: true });
+    const eventRef = doc(db, "routines", eventId);
+    await deleteDoc(eventRef);
+    return { success: true };
 }

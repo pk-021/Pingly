@@ -9,6 +9,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { createUserProfile } from "@/lib/data-service";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -31,7 +32,15 @@ export default function LoginPage() {
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 await updateProfile(userCredential.user, { displayName });
-                // The useEffect will handle the redirect. In a real app, you'd also create a user document in Firestore here.
+                
+                // Create a user profile document in Firestore
+                await createUserProfile({
+                    uid: userCredential.user.uid,
+                    email: userCredential.user.email,
+                    displayName: displayName
+                });
+
+                // The useEffect will handle the redirect.
             } catch (error: any) {
                 setError(error.message);
             }
