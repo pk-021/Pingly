@@ -35,7 +35,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { format, addHours, startOfDay, setHours, setMinutes, getHours, getMinutes, isSameDay } from 'date-fns';
+import { format, addHours, startOfDay, setHours, setMinutes, getHours, getMinutes, isSameDay, getDay } from 'date-fns';
 import { CalendarIcon, Trash2, Pencil, Clock } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 
@@ -43,11 +43,13 @@ const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
   priority: z.enum(['High', 'Medium', 'Low']),
+  category: z.string().optional(),
   dueDate: z.date({ required_error: 'Due date is required' }),
   startTime: z.string().optional(),
   endTime: z.string().optional(),
   completionNotes: z.string().optional(),
   roomNumber: z.string().optional(),
+  isRecurring: z.boolean().optional(),
 }).refine(data => {
     if (data.startTime && !data.endTime) return false;
     if (!data.startTime && data.endTime) return false;
@@ -68,7 +70,7 @@ const taskSchema = z.object({
 type TaskDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (task: Omit<Task, 'id'> | Task) => void;
+  onSave: (task: Omit<Task, 'id' | 'creatorId'> | Task) => void;
   onDelete: (taskId: string) => void;
   task?: Task;
   routine: CalendarEvent[];
@@ -78,20 +80,21 @@ type TaskDialogProps = {
 const workingHours = { start: 9, end: 17 }; // 9 AM to 5 PM
 const slotDuration = 30; // in minutes
 
-function getAvailableSlots(date: Date, allItems: DisplayItem[], currentTaskId?: string) {
-    const startOfWorkDay = addHours(startOfDay(date), workingHours.start);
-    const endOfWorkDay = addHours(startOfDay(date), workingHours.end);
+function getAvailableSlots(date: Date, allItems: (Task | CalendarEvent)[], currentTaskId?: string) {
+    const startOfWorkDay = setMinutes(setHours(startOfDay(date), workingHours.start), 0);
+    const endOfWorkDay = setMinutes(setHours(startOfDay(date), workingHours.end), 0);
     
     const itemsForDay = allItems
         .filter(item => ('id' in item && item.id !== currentTaskId)) // Exclude current task from conflict check
         .filter(item => {
-            const itemDate = 'startTime' in item ? item.startTime : ('dueDate' in item ? item.dueDate : null)
-            if (!itemDate) return false;
-            // For routine, check day of week, for tasks check full date
-            const checkDate = 'roomNumber' in item && !('priority' in item) ? getHours(itemDate) > 0 : isSameDay(itemDate, date)
-            return item.startTime && checkDate;
-        })
-        .sort((a, b) => a.startTime!.getTime() - b.startTime!.getTime());
+            if ('dayOfWeek' in item) { // It's a CalendarEvent (routine)
+                return item.dayOfWeek === getDay(date);
+            }
+            if ('dueDate' in item) { // It's a Task
+                return isSameDay(item.dueDate, date) && item.startTime;
+            }
+            return false;
+        });
 
     const slots = [];
     let currentTime = startOfWorkDay;
@@ -99,9 +102,11 @@ function getAvailableSlots(date: Date, allItems: DisplayItem[], currentTaskId?: 
     while (currentTime < endOfWorkDay) {
         const slotEnd = new Date(currentTime.getTime() + slotDuration * 60000);
         
-        let conflict = itemsForDay.some(item => 
-            currentTime < item.endTime! && slotEnd > item.startTime!
-        );
+        let conflict = itemsForDay.some(item => {
+            const itemStartTime = 'dayOfWeek' in item ? setMinutes(setHours(startOfDay(date), getHours(item.startTime)), getMinutes(item.startTime)) : item.startTime!;
+            const itemEndTime = 'dayOfWeek' in item ? setMinutes(setHours(startOfDay(date), getHours(item.endTime)), getMinutes(item.endTime)) : item.endTime!;
+            return currentTime < itemEndTime && slotEnd > itemStartTime;
+        });
 
         if (!conflict) {
             slots.push({
@@ -124,11 +129,13 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
       title: '',
       description: '',
       priority: 'Medium',
+      category: '',
       dueDate: new Date(),
       startTime: '',
       endTime: '',
       completionNotes: '',
       roomNumber: '',
+      isRecurring: false,
     },
   });
 
@@ -151,11 +158,13 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
             title: task.title,
             description: task.description || '',
             priority: task.priority,
+            category: task.category || '',
             dueDate: task.dueDate,
             startTime: task.startTime ? format(task.startTime, 'HH:mm') : '',
             endTime: task.endTime ? format(task.endTime, 'HH:mm') : '',
             completionNotes: task.completionNotes || '',
             roomNumber: task.roomNumber || '',
+            isRecurring: task.isRecurring || false,
           });
           setIsEditing(false);
         } else {
@@ -163,11 +172,13 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
             title: '',
             description: '',
             priority: 'Medium',
+            category: 'Personal',
             dueDate: new Date(),
             startTime: '',
             endTime: '',
             completionNotes: '',
             roomNumber: '',
+            isRecurring: false,
           });
           setIsEditing(true);
         }
@@ -176,7 +187,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
   
   const handleSave = (data: z.infer<typeof taskSchema>) => {
     const { startTime, endTime, ...restData } = data;
-    let finalTaskData: Omit<Task, 'id' | 'completed'> | Task = { ...task, ...restData, completed: task?.completed || false };
+    let finalTaskData: Omit<Task, 'id' | 'completed' | 'creatorId'> | Task = { ...task, ...restData, completed: task?.completed || false };
     
     if (startTime && endTime) {
         const [startHour, startMinute] = startTime.split(':').map(Number);

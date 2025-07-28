@@ -59,13 +59,13 @@ export default function UpcomingTasksCard() {
         setSelectedTask(undefined);
     }
     
-    const handleTaskSave = async (task: Omit<Task, 'id'> | Task) => {
+    const handleTaskSave = async (task: Omit<Task, 'id' | 'creatorId' | 'completed'> | Task) => {
         try {
           if ('id' in task && task.id) {
             await updateTask(task as Task);
             toast({ title: "Task Updated", description: "Your task has been successfully updated." });
           } else {
-            await addTask(task as Omit<Task, 'id'>);
+            await addTask(task as Omit<Task, 'id' | 'creatorId' | 'completed'>);
             toast({ title: "Task Added", description: "Your new task has been successfully added." });
           }
           loadData();
@@ -100,8 +100,7 @@ export default function UpcomingTasksCard() {
         const today = new Date();
         if (filter === 'all') return tasks;
         if (filter === 'completed') return tasks.filter(task => task.completed);
-        // Upcoming tasks are those that are not completed and are due after today
-        return tasks.filter(task => !task.completed && isAfter(task.dueDate, endOfDay(today)));
+        return tasks.filter(task => !task.completed);
     }, [filter, tasks]);
 
     return (

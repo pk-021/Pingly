@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -15,6 +14,7 @@ import {
   startOfDay,
   getDay,
   addDays,
+  set,
   formatDistanceToNow,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Pin, BookOpen, ListTodo, PlusCircle, CalendarDays, Dot } from 'lucide-react';
@@ -80,13 +80,13 @@ export default function CalendarPage() {
     setSelectedTask(undefined);
   }
 
-  const handleTaskSave = async (task: Omit<Task, 'id'> | Task) => {
+  const handleTaskSave = async (taskData: Omit<Task, 'id' | 'creatorId'> | Task) => {
     try {
-      if ('id' in task && task.id) {
-        await updateTask(task as Task);
+      if ('id' in taskData && taskData.id) {
+        await updateTask(taskData as Task);
         toast({ title: "Task Updated", description: "Your task has been successfully updated." });
       } else {
-        await addTask(task as Omit<Task, 'id'>);
+        await addTask(taskData as Omit<Task, 'id' | 'creatorId' | 'completed'>);
         toast({ title: "Task Added", description: "Your new task has been successfully added." });
       }
       loadData();
@@ -182,10 +182,21 @@ export default function CalendarPage() {
   
   const selectedDayRoutine = useMemo(() => {
     const dayOfWeek = getDay(selectedDate);
+    // Convert recurring routine events into concrete events for the selected day
     return classRoutine
-      .filter(event => getDay(event.startTime) === dayOfWeek)
+      .filter(event => event.dayOfWeek === dayOfWeek)
+      .map(event => {
+        const startTime = set(selectedDate, { hours: getDay(event.startTime), minutes: 0, seconds: 0, milliseconds: 0 });
+        const endTime = set(selectedDate, { hours: getDay(event.endTime), minutes: 0, seconds: 0, milliseconds: 0 });
+        return {
+          ...event,
+          startTime: startTime,
+          endTime: endTime,
+        };
+      })
       .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   }, [classRoutine, selectedDate]);
+
 
   return (
     <TooltipProvider>
@@ -199,11 +210,11 @@ export default function CalendarPage() {
         tasks={tasks}
       />
       <div className="flex flex-col lg:flex-row gap-8 h-full w-full">
-        <div className="flex-1 flex flex-col h-full">
+        <div className="flex-1 flex flex-col h-full w-full">
           <Card className="flex-1 flex flex-col">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">
+                <h2 className="text-2xl font-bold font-headline">
                   {format(currentDate, 'MMMM yyyy')}
                 </h2>
                 <div className="flex items-center gap-2">
@@ -299,7 +310,7 @@ export default function CalendarPage() {
         <div className="w-full lg:w-[400px] lg:max-w-[40%] flex-shrink-0">
           <Card className="sticky top-6">
             <CardHeader>
-              <CardTitle>Schedule for {format(selectedDate, 'MMMM d')}</CardTitle>
+              <CardTitle className="font-headline">Schedule for {format(selectedDate, 'MMMM d')}</CardTitle>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[calc(100vh-240px)]">

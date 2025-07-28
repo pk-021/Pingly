@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTasks, getClassRoutine, updateTask, addTask, deleteTask } from "@/lib/data-service";
 import type { CalendarEvent, Task } from "@/lib/types";
-import { isToday, format, getDay } from 'date-fns';
+import { isToday, format, getDay, set } from 'date-fns';
 import { CalendarClock, Pin, BookOpen, CalendarCheck } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { Separator } from "../ui/separator";
@@ -36,13 +36,13 @@ export default function DailyScheduleCard() {
         setSelectedTask(undefined);
     }
     
-    const handleTaskSave = async (task: Omit<Task, 'id'> | Task) => {
+    const handleTaskSave = async (task: Omit<Task, 'id' | 'creatorId' | 'completed'> | Task) => {
         try {
           if ('id' in task && task.id) {
             await updateTask(task as Task);
             toast({ title: "Task Updated", description: "Your task has been successfully updated." });
           } else {
-            await addTask(task as Omit<Task, 'id'>);
+            await addTask(task as Omit<Task, 'id' | 'creatorId' | 'completed'>);
             toast({ title: "Task Added", description: "Your new task has been successfully added." });
           }
           loadData();
@@ -77,7 +77,12 @@ export default function DailyScheduleCard() {
     const todayRoutine = useMemo(() => {
         const todayDay = getDay(new Date());
         return classRoutine
-            .filter(event => getDay(event.startTime) === todayDay)
+            .filter(event => event.dayOfWeek === todayDay)
+            .map(event => ({
+                ...event,
+                startTime: set(new Date(), { hours: event.startTime.getHours(), minutes: event.startTime.getMinutes(), seconds: 0, milliseconds: 0 }),
+                endTime: set(new Date(), { hours: event.endTime.getHours(), minutes: event.endTime.getMinutes(), seconds: 0, milliseconds: 0 })
+            }))
             .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
     }, [classRoutine]);
 

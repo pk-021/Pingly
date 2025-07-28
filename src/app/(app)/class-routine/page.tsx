@@ -1,11 +1,10 @@
 
-
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { getClassRoutine, addRoutineEvent, updateRoutineEvent, deleteRoutineEvent } from '@/lib/data-service';
 import type { CalendarEvent } from '@/lib/types';
-import { format, eachDayOfInterval, startOfWeek, endOfWeek, isSameDay, set, getDay } from 'date-fns';
+import { format, eachDayOfInterval, startOfWeek, endOfWeek, set, getDay, setHours, setMinutes } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Pin, BookOpen, PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -40,12 +39,16 @@ export default function ClassRoutinePage() {
   });
 
   const routineByDay = useMemo(() => {
-    const grouped: { [key: string]: CalendarEvent[] } = {};
+    const grouped: { [key: number]: CalendarEvent[] } = {};
     weekDays.forEach(day => {
-      const dayKey = format(day, 'yyyy-MM-dd');
-      grouped[dayKey] = routine
-        .filter(event => getDay(event.startTime) === getDay(day)) // Match by day of week for weekly routine
-        .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+        const dayOfWeek = getDay(day);
+        grouped[dayOfWeek] = routine
+            .filter(event => event.dayOfWeek === dayOfWeek)
+            .sort((a, b) => {
+                const aTime = a.startTime.getHours() * 60 + a.startTime.getMinutes();
+                const bTime = b.startTime.getHours() * 60 + b.startTime.getMinutes();
+                return aTime - bTime;
+            });
     });
     return grouped;
   }, [routine, weekDays]);
@@ -90,13 +93,8 @@ export default function ClassRoutinePage() {
   }
 
   const handleEventClick = (event: CalendarEvent, day: Date) => {
-    // We need to set the date of the event to the selected day for editing purposes
-    const eventOnSelectedDay = {
-        ...event,
-        startTime: set(event.startTime, { year: day.getFullYear(), month: day.getMonth(), date: day.getDate() }),
-        endTime: set(event.endTime, { year: day.getFullYear(), month: day.getMonth(), date: day.getDate() })
-    };
-    setSelectedEvent(eventOnSelectedDay);
+    setSelectedEvent(event);
+    setSelectedDate(day);
     setIsDialogOpen(true);
   }
 
@@ -135,8 +133,9 @@ export default function ClassRoutinePage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-x-2">
                 {weekDays.map(day => {
-                    const dayKey = format(day, 'yyyy-MM-dd');
-                    const isSaturday = getDay(day) === 6;
+                    const dayOfWeek = getDay(day);
+                    const isSaturday = dayOfWeek === 6;
+                    const eventsForDay = routineByDay[dayOfWeek] || [];
                     return (
                         <div key={day.toString()} 
                             className={cn(
@@ -151,7 +150,7 @@ export default function ClassRoutinePage() {
                             {format(day, 'eeee')}
                         </h3>
                         <div className="space-y-3 min-h-[200px]">
-                            {routineByDay[dayKey] && routineByDay[dayKey].map(event => (
+                            {eventsForDay.map(event => (
                             <Card key={event.id} onClick={() => handleEventClick(event, day)} className="bg-accent/20 border-accent/40 hover:bg-accent/40 cursor-pointer transition-colors">
                                 <CardContent className="p-3">
                                 <p className="font-bold text-sm">{event.title}</p>

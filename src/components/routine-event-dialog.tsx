@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { format, setHours, setMinutes, getHours, getMinutes, getDay } from 'date-fns';
+import { format, setHours, setMinutes, getHours, getMinutes, getDay, startOfDay } from 'date-fns';
 import { Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 
@@ -81,12 +81,12 @@ export function RoutineEventDialog({ isOpen, onClose, onSave, onDelete, event, s
   });
 
   const dayForConflictCheck = useMemo(() => {
-    return event ? getDay(event.startTime) : (selectedDate ? getDay(selectedDate) : undefined);
+    return event ? event.dayOfWeek : (selectedDate ? getDay(selectedDate) : undefined);
   }, [event, selectedDate]);
 
   const availableStartSlots = useMemo(() => {
     if (dayForConflictCheck === undefined) return timeSlots;
-    const routineForDay = routine.filter(r => getDay(r.startTime) === dayForConflictCheck && r.id !== event?.id);
+    const routineForDay = routine.filter(r => r.dayOfWeek === dayForConflictCheck && r.id !== event?.id);
     
     return timeSlots.filter(slot => {
         const [hour, minute] = slot.split(':').map(Number);
@@ -121,7 +121,7 @@ export function RoutineEventDialog({ isOpen, onClose, onSave, onDelete, event, s
   }, [event, isOpen, form]);
   
   const handleSave = (data: z.infer<typeof eventSchema>) => {
-    const dateToUse = event?.startTime || selectedDate || new Date();
+    const dateToUse = selectedDate || startOfDay(new Date());
     
     const [startHour, startMinute] = data.startTime.split(':').map(Number);
     const startDateTime = setMinutes(setHours(dateToUse, startHour), startMinute);
@@ -132,6 +132,7 @@ export function RoutineEventDialog({ isOpen, onClose, onSave, onDelete, event, s
     const finalEventData = {
         ...event,
         ...data,
+        dayOfWeek: getDay(dateToUse),
         startTime: startDateTime,
         endTime: endDateTime,
     };

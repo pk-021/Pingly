@@ -1,9 +1,9 @@
 
-import type { CalendarEvent, Task } from './types';
+import type { CalendarEvent, Task, UserProfile } from './types';
 import { getDay } from 'date-fns';
 
 // In a real application, this data would be fetched from a database or API.
-// For now, we'll use mock data.
+// For now, we'll use mock data based on the new structure.
 
 const today = new Date();
 const tomorrow = new Date();
@@ -11,10 +11,13 @@ tomorrow.setDate(today.getDate() + 1);
 const nextWeek = new Date();
 nextWeek.setDate(today.getDate() + 7);
 
+const MOCK_USER_ID = "user123";
+
 let classRoutine: CalendarEvent[] = [
   {
     id: 'cr1',
     title: 'CS101 Lecture',
+    dayOfWeek: 1, // Monday
     startTime: new Date(new Date().setHours(9, 0, 0, 0)),
     endTime: new Date(new Date().setHours(10, 30, 0, 0)),
     roomNumber: 'A-101',
@@ -22,6 +25,7 @@ let classRoutine: CalendarEvent[] = [
   {
     id: 'cr2',
     title: 'Office Hours',
+    dayOfWeek: 2, // Tuesday
     startTime: new Date(new Date().setHours(14, 0, 0, 0)),
     endTime: new Date(new Date().setHours(16, 0, 0, 0)),
     roomNumber: 'Faculty Office 21B',
@@ -29,8 +33,9 @@ let classRoutine: CalendarEvent[] = [
   {
     id: 'cr3',
     title: 'Faculty Board Meeting',
-    startTime: new Date(new Date(tomorrow).setHours(15, 0, 0, 0)),
-    endTime: new Date(new Date(tomorrow).setHours(16, 30, 0, 0)),
+    dayOfWeek: 3, // Wednesday
+    startTime: new Date(new Date().setHours(15, 0, 0, 0)),
+    endTime: new Date(new Date().setHours(16, 30, 0, 0)),
     roomNumber: 'Conference Hall A',
   },
 ];
@@ -42,66 +47,80 @@ let mockTasks: Task[] = [
     title: 'Grade Midterm Exams',
     description: 'Go through all the papers from the CS101 midterm exam and upload the grades to the portal.',
     priority: 'High',
+    category: 'Assessment',
     dueDate: today,
     startTime: new Date(new Date().setHours(16, 0, 0, 0)),
     endTime: new Date(new Date().setHours(17, 0, 0, 0)),
     roomNumber: 'Faculty Office 21B',
     completed: false,
+    creatorId: MOCK_USER_ID,
   },
   {
     id: 't2',
     title: 'Prepare slides for CS202',
     description: 'Create a new presentation for the upcoming lecture on Advanced Algorithms.',
     priority: 'Medium',
+    category: 'Class',
     dueDate: nextWeek,
     completed: false,
+    creatorId: MOCK_USER_ID,
   },
   {
     id: 't3',
     title: 'Submit research paper draft',
     description: 'Finalize the draft for the paper on "Quantum Computing Applications" and submit it to the journal.',
     priority: 'High',
+    category: 'Research',
     dueDate: new Date(new Date().setDate(today.getDate() + 3)),
     completed: false,
+    creatorId: MOCK_USER_ID,
   },
   {
     id: 't4',
     title: 'Update course website',
     description: 'Upload the latest syllabus and add the new lecture notes for week 5.',
     priority: 'Low',
+    category: 'Administrative',
     dueDate: nextWeek,
     completed: true,
     completionNotes: 'Updated syllabus and added new lecture notes.',
+    creatorId: MOCK_USER_ID,
   },
   {
     id: 't5',
     title: 'Review student applications',
     description: 'Go through the new applications for the research assistant position.',
     priority: 'Medium',
+    category: 'Administrative',
     dueDate: new Date(new Date().setDate(today.getDate() + 5)),
     completed: false,
+    creatorId: MOCK_USER_ID,
   },
   {
     id: 'ue1',
     title: 'Project Phoenix Meeting',
     description: 'Strategy meeting for the upcoming Project Phoenix launch.',
     priority: 'Medium',
+    category: 'Meeting',
     dueDate: today,
     startTime: new Date(new Date().setHours(11, 0, 0, 0)),
     endTime: new Date(new Date().setHours(12, 0, 0, 0)),
     roomNumber: 'Library Room 3',
     completed: false,
+    creatorId: MOCK_USER_ID,
   },
   {
     id: 'ue2',
     title: 'Dentist Appointment',
     description: 'Annual check-up.',
     priority: 'Medium',
+    category: 'Personal',
     dueDate: tomorrow,
     startTime: new Date(new Date(tomorrow).setHours(11, 0, 0, 0)),
     endTime: new Date(new Date(tomorrow).setHours(12, 0, 0, 0)),
     roomNumber: 'Dental Clinic, City Center',
     completed: false,
+    creatorId: MOCK_USER_ID,
   },
 ];
 
@@ -117,12 +136,13 @@ export async function getTasks(): Promise<Task[]> {
   return Promise.resolve(mockTasks);
 }
 
-export async function addTask(task: Omit<Task, 'id' | 'completed'>): Promise<Task> {
+export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>): Promise<Task> {
     await new Promise(res => setTimeout(res, 300));
     const newTask: Task = {
         ...task,
         id: `t${Date.now()}`,
         completed: false,
+        creatorId: MOCK_USER_ID, // In a real app, this would be the logged-in user's ID
     };
     mockTasks.push(newTask);
     return Promise.resolve(newTask);
