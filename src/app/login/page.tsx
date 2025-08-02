@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { auth, db } from "@/lib/firebase";
 import { GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,12 @@ export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
+
+    useEffect(() => {
+        if (!loading && user) {
+            router.push('/');
+        }
+    }, [user, loading, router]);
 
     const handleEmailAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -39,7 +45,7 @@ export default function LoginPage() {
                     email: userCredential.user.email,
                     displayName: displayName
                 });
-                router.push('/');
+                // The useEffect will handle the redirect
             } catch (error: any) {
                 setError(error.message);
             }
@@ -47,7 +53,7 @@ export default function LoginPage() {
             // Sign In
             try {
                 await signInWithEmailAndPassword(auth, email, password);
-                router.push('/');
+                // The useEffect will handle the redirect
             } catch (error: any) {
                 setError(error.message);
             }
@@ -73,7 +79,7 @@ export default function LoginPage() {
                     displayName: user.displayName
                 });
             }
-            router.push('/');
+            // The useEffect will handle the redirect
         } catch (error: any) {
             setError(error.message);
         }
@@ -89,8 +95,8 @@ export default function LoginPage() {
         )
     }
 
+    // Don't render the form if the user is already logged in and we're about to redirect.
     if (user) {
-        router.push('/');
         return (
              <div className="flex h-screen w-full items-center justify-center">
                 <div className="mx-auto grid w-[350px] gap-6 text-center">
