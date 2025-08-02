@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { auth, db } from "@/lib/firebase";
 import { GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +39,7 @@ export default function LoginPage() {
                     email: userCredential.user.email,
                     displayName: displayName
                 });
+                router.push('/');
             } catch (error: any) {
                 setError(error.message);
             }
@@ -46,6 +47,7 @@ export default function LoginPage() {
             // Sign In
             try {
                 await signInWithEmailAndPassword(auth, email, password);
+                router.push('/');
             } catch (error: any) {
                 setError(error.message);
             }
@@ -71,16 +73,33 @@ export default function LoginPage() {
                     displayName: user.displayName
                 });
             }
+            router.push('/');
         } catch (error: any) {
             setError(error.message);
         }
     };
-    
-    useEffect(() => {
-        if (!loading && user) {
-            router.push('/');
-        }
-    }, [user, loading, router]);
+
+    if (loading) {
+        return (
+             <div className="flex h-screen w-full items-center justify-center">
+                <div className="mx-auto grid w-[350px] gap-6 text-center">
+                    <p>Loading...</p>
+                </div>
+            </div>
+        )
+    }
+
+    if (user) {
+        router.push('/');
+        return (
+             <div className="flex h-screen w-full items-center justify-center">
+                <div className="mx-auto grid w-[350px] gap-6 text-center">
+                    <p>Redirecting...</p>
+                </div>
+            </div>
+        )
+    }
+
 
     return (
         <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
