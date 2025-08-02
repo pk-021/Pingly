@@ -13,7 +13,8 @@ import {
     where, 
     query,
     Timestamp,
-    writeBatch
+    writeBatch,
+    setDoc
 } from 'firebase/firestore';
 import { auth, app } from './firebase';
 
@@ -46,13 +47,16 @@ function routineFromDoc(doc: any): CalendarEvent {
 // --- User Management ---
 export async function createUserProfile(user: { uid: string, email: string | null, displayName: string | null }): Promise<void> {
     const userRef = doc(db, "users", user.uid);
-    const newUserProfile: Omit<UserProfile, 'id'> = {
+    const newUserProfile: Omit<UserProfile, 'id' | 'createdAt'> = {
         email: user.email || "",
         displayName: user.displayName || "New User",
-        department: "", // Can be updated by the user later
-        createdAt: new Date(),
+        department: "",
     };
-    await addDoc(collection(db, 'users'), newUserProfile);
+    // Use setDoc to create a document with a specific ID (the user's UID)
+    await setDoc(userRef, {
+        ...newUserProfile,
+        createdAt: new Date(),
+    });
 }
 
 
