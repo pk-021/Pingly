@@ -44,6 +44,13 @@ function routineFromDoc(doc: any): CalendarEvent {
 // --- User Management ---
 export async function createUserProfile(user: { uid: string, email: string | null, displayName: string | null }): Promise<void> {
     const userRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userRef);
+
+    if (userDoc.exists()) {
+        // User profile already exists, no need to create another one.
+        return;
+    }
+
     const newUserProfile: Omit<UserProfile, 'id' | 'createdAt'> = {
         email: user.email || "",
         displayName: user.displayName || "New User",
@@ -52,7 +59,7 @@ export async function createUserProfile(user: { uid: string, email: string | nul
     // Use setDoc to create a document with a specific ID (the user's UID)
     await setDoc(userRef, {
         ...newUserProfile,
-        createdAt: new Date(),
+        createdAt: Timestamp.fromDate(new Date()),
     });
 }
 
@@ -88,25 +95,44 @@ export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>
     const user = auth.currentUser;
     if (!user) throw new Error("User not authenticated");
 
+    const { dueDate, startTime, endTime, ...rest } = task;
+
     const newTaskData = {
-        ...task,
+        ...rest,
         creatorId: user.uid,
         completed: false,
+        dueDate: Timestamp.fromDate(dueDate),
+        ...(startTime && { startTime: Timestamp.fromDate(startTime) }),
+        ...(endTime && { endTime: Timestamp.fromDate(endTime) }),
     };
 
     const docRef = await addDoc(collection(db, "tasks"), newTaskData);
     
     return {
         id: docRef.id,
-        ...newTaskData,
+        ...task,
+        creatorId: user.uid,
+        completed: false,
     };
 }
 
 export async function updateTask(updatedTask: Task): Promise<Task> {
     const taskRef = doc(db, "tasks", updatedTask.id);
     // The 'id' is not stored in the Firestore document itself
-    const { id, ...taskData } = updatedTask;
-    await updateDoc(taskRef, taskData as any);
+    const { id, dueDate, startTime, endTime, ...taskData } = updatedTask;
+
+    const dataToUpdate: any = {
+        ...taskData,
+        dueDate: Timestamp.fromDate(dueDate),
+    };
+    if (startTime) {
+        dataToUpdate.startTime = Timestamp.fromDate(startTime);
+    }
+    if (endTime) {
+        dataToUpdate.endTime = Timestamp.fromDate(endTime);
+    }
+
+    await updateDoc(taskRef, dataToUpdate);
     return updatedTask;
 }
 
@@ -142,24 +168,33 @@ export async function getClassRoutine(): Promise<CalendarEvent[]> {
 export async function addRoutineEvent(event: Omit<CalendarEvent, 'id'>): Promise<CalendarEvent> {
     const user = auth.currentUser;
     if (!user) throw new Error("User not authenticated");
+    
+    const { startTime, endTime, ...rest } = event;
 
     const newEventData = {
-        ...event,
+        ...rest,
         creatorId: user.uid,
+        startTime: Timestamp.fromDate(startTime),
+        endTime: Timestamp.fromDate(endTime),
     };
 
     const docRef = await addDoc(collection(db, "routines"), newEventData);
 
     return {
         id: docRef.id,
-        ...newEventData,
+        ...event,
+        creatorId: user.uid,
     };
 }
 
 export async function updateRoutineEvent(updatedEvent: CalendarEvent): Promise<CalendarEvent> {
     const eventRef = doc(db, "routines", updatedEvent.id);
-    const { id, ...eventData } = updatedEvent;
-    await updateDoc(eventRef, eventData as any);
+    const { id, startTime, endTime, ...eventData } = updatedEvent;
+    await updateDoc(eventRef, {
+        ...eventData,
+        startTime: Timestamp.fromDate(startTime),
+        endTime: Timestamp.fromDate(endTime),
+    });
     return updatedEvent;
 }
 
