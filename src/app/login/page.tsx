@@ -1,7 +1,7 @@
 
 'use client';
 import { Button } from "@/components/ui/button";
-import { auth, app } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -10,9 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { createUserProfile } from "@/lib/data-service";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
-
-const db = getFirestore(app);
+import { doc, getDoc } from "firebase/firestore";
 
 export default function LoginPage() {
     const router = useRouter();

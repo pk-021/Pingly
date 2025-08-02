@@ -3,7 +3,6 @@
 
 import type { CalendarEvent, Task, UserProfile } from './types';
 import { 
-    getFirestore, 
     collection, 
     addDoc, 
     getDocs, 
@@ -16,9 +15,7 @@ import {
     writeBatch,
     setDoc
 } from 'firebase/firestore';
-import { auth, app } from './firebase';
-
-const db = getFirestore(app);
+import { auth, db } from './firebase';
 
 // Helper to convert Firestore Timestamps to JS Dates in a task
 function taskFromDoc(doc: any): Task {
