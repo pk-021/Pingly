@@ -117,13 +117,11 @@ export default function UpcomingTasksCard() {
             />
             <Card className="flex flex-col h-full">
                 <CardHeader>
-                    <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                            <CardTitle className="font-headline text-2xl flex items-center gap-2">
-                                <ListTodo className="w-6 h-6 text-primary" />
-                                Tasks
-                            </CardTitle>
-                        </div>
+                    <div className="flex justify-between items-center gap-4">
+                        <CardTitle className="font-headline text-2xl flex items-center gap-2 flex-1">
+                            <ListTodo className="w-6 h-6 text-primary" />
+                            Tasks
+                        </CardTitle>
                         <Select value={filter} onValueChange={(value) => setFilter(value as any)}>
                             <SelectTrigger className="w-[130px]">
                                 <SelectValue placeholder="Filter" />
