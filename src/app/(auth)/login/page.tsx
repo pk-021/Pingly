@@ -23,7 +23,7 @@ export default function LoginPage() {
 
     useEffect(() => {
         if (!loading && user) {
-            router.push('/');
+            router.replace('/dashboard');
         }
     }, [user, loading, router]);
 
@@ -45,7 +45,7 @@ export default function LoginPage() {
                     email: userCredential.user.email,
                     displayName: displayName
                 });
-                // The useEffect will handle the redirect
+                router.replace('/dashboard');
             } catch (error: any) {
                 setError(error.message);
             }
@@ -53,7 +53,7 @@ export default function LoginPage() {
             // Sign In
             try {
                 await signInWithEmailAndPassword(auth, email, password);
-                // The useEffect will handle the redirect
+                router.replace('/dashboard');
             } catch (error: any) {
                 setError(error.message);
             }
@@ -67,25 +67,23 @@ export default function LoginPage() {
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
 
-            // Check if user profile already exists
             const userDocRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userDocRef);
 
             if (!userDoc.exists()) {
-                // Create profile for new user
                 await createUserProfile({
                     uid: user.uid,
                     email: user.email,
                     displayName: user.displayName
                 });
             }
-            // The useEffect will handle the redirect
+            router.replace('/dashboard');
         } catch (error: any) {
             setError(error.message);
         }
     };
 
-    if (loading) {
+    if (loading || user) {
         return (
              <div className="flex h-screen w-full items-center justify-center">
                 <div className="mx-auto grid w-[350px] gap-6 text-center">
@@ -94,18 +92,6 @@ export default function LoginPage() {
             </div>
         )
     }
-
-    // Don't render the form if the user is already logged in and we're about to redirect.
-    if (user) {
-        return (
-             <div className="flex h-screen w-full items-center justify-center">
-                <div className="mx-auto grid w-[350px] gap-6 text-center">
-                    <p>Redirecting...</p>
-                </div>
-            </div>
-        )
-    }
-
 
     return (
         <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">

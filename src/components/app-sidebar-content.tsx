@@ -34,7 +34,7 @@ import {
 import { Button } from './ui/button';
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/class-routine', label: 'Class Routine', icon: BookOpen },
 ];

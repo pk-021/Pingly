@@ -26,7 +26,7 @@ const getTaskStatus = (task: Task) => {
         return { text: 'Completed', color: '' };
     }
     if (isPast(endOfDay(task.dueDate))) {
-        return { text: 'Overdue', color: 'text-red-500' };
+        return { text: 'Late', color: 'text-red-500' };
     }
     if (isToday(task.dueDate)) {
         return { text: 'Due today', color: '' };
