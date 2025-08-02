@@ -13,6 +13,7 @@ import { Button } from '../ui/button';
 import { TaskDialog } from '../task-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
+import { ScrollArea } from '../ui/scroll-area';
 
 const priorityIcons = {
     High: <ChevronUp className="w-4 h-4 text-red-500" />,
@@ -135,7 +136,7 @@ export default function UpcomingTasksCard() {
                         </Select>
                     </div>
                 </CardHeader>
-                <CardContent className="flex-1">
+                <CardContent className="flex-1 flex flex-col min-h-0">
                     {isLoading ? (
                         <div className="space-y-3">
                             <Skeleton className="h-16 w-full" />
@@ -143,38 +144,42 @@ export default function UpcomingTasksCard() {
                             <Skeleton className="h-16 w-full" />
                         </div>
                     ) : filteredTasks.length > 0 ? (
-                        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                            {filteredTasks.map(task => {
-                                const status = getTaskStatus(task);
-                                return (
-                                <div key={task.id} onClick={() => handleTaskClick(task)} className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer">
-                                    <div className="flex-1">
-                                        <p className={cn("font-medium", task.completed && "line-through text-muted-foreground")}>{task.title}</p>
-                                        <div className={cn("text-sm text-muted-foreground", status.color)}>
-                                            <span>
-                                                {status.text}
-                                            </span>
-                                            {task.startTime && task.endTime && (
-                                                <span className='ml-2 inline-flex items-center gap-1'>
-                                                    <Clock className="w-3 h-3"/>
-                                                    {format(task.startTime, 'p')}
+                        <ScrollArea className="flex-1 -mr-4">
+                            <div className="space-y-3 pr-4">
+                                {filteredTasks.map(task => {
+                                    const status = getTaskStatus(task);
+                                    return (
+                                    <div key={task.id} onClick={() => handleTaskClick(task)} className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer">
+                                        <div className="flex-1">
+                                            <p className={cn("font-medium", task.completed && "line-through text-muted-foreground")}>{task.title}</p>
+                                            <div className={cn("text-sm text-muted-foreground", status.color)}>
+                                                <span>
+                                                    {status.text}
                                                 </span>
-                                            )}
+                                                {task.startTime && task.endTime && (
+                                                    <span className='ml-2 inline-flex items-center gap-1'>
+                                                        <Clock className="w-3 h-3"/>
+                                                        {format(task.startTime, 'p')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {priorityIcons[task.priority]}
+                                            <Badge variant={task.priority === 'High' ? 'destructive' : task.priority === 'Medium' ? 'secondary' : 'outline'}>{task.priority}</Badge>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        {priorityIcons[task.priority]}
-                                        <Badge variant={task.priority === 'High' ? 'destructive' : task.priority === 'Medium' ? 'secondary' : 'outline'}>{task.priority}</Badge>
-                                    </div>
-                                </div>
-                            )})}
-                        </div>
+                                )})}
+                            </div>
+                        </ScrollArea>
                     ) : (
-                        <div className="text-center py-10">
-                            <p className="text-muted-foreground">No {filter} tasks.</p>
-                            <p className="text-sm text-muted-foreground">
-                                {filter === 'upcoming' ? "You're all caught up!" : "Create a new task to get started."}
-                            </p>
+                        <div className="flex-1 flex items-center justify-center text-center">
+                            <div>
+                                <p className="text-muted-foreground">No {filter} tasks.</p>
+                                <p className="text-sm text-muted-foreground">
+                                    {filter === 'upcoming' ? "You're all caught up!" : "Create a new task to get started."}
+                                </p>
+                            </div>
                         </div>
                     )}
                 </CardContent>
