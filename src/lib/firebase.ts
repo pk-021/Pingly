@@ -14,7 +14,6 @@ const firebaseConfig = {
     storageBucket: "pingly-web-bu4og.appspot.com",
     messagingSenderId: "1062973792496",
     appId: "1:1062973792496:web:2f0e35320853724a955747",
-    measurementId: "G-9XG99F2H9E",
   };
 // Initialize Firebase for client-side
 let app: FirebaseApp;
