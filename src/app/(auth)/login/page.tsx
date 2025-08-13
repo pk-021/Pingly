@@ -70,6 +70,7 @@ export default function LoginPage() {
                 break;
             case 'auth/email-already-in-use':
                 errorMessage = 'An account with this email already exists. Please sign in.';
+                setIsSignUp(false); // Switch to sign-in mode
                 break;
             case 'auth/weak-password':
                 errorMessage = 'The password must be at least 6 characters long.';
