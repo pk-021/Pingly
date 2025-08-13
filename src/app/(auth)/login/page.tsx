@@ -21,7 +21,6 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
 
-    // Redirect if user is already logged in
     useEffect(() => {
         if (!loading && user) {
             router.replace('/dashboard');
@@ -30,16 +29,18 @@ export default function LoginPage() {
 
 
     const handleAuthSuccess = async (user: User, newDisplayName?: string) => {
+        console.log("Auth successful for user:", user.uid);
         try {
-            // Ensure profile exists or is created
+            console.log("Calling createUserProfile...");
             await createUserProfile({
                 uid: user.uid,
                 email: user.email,
                 displayName: newDisplayName || user.displayName
             });
-            // Then navigate
+            console.log("Profile creation process finished. Navigating to dashboard.");
             router.replace('/dashboard');
         } catch (e: any) {
+             console.error("!!! CRITICAL: Failed to create or check profile after login. !!!", e);
              setError(`Login successful, but failed to create profile: ${e.message}`);
         }
     }

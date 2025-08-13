@@ -45,17 +45,23 @@ function routineFromDoc(doc: any): CalendarEvent {
 
 // --- User Management ---
 export async function createUserProfile(user: { uid: string, email: string | null, displayName: string | null }): Promise<void> {
+    console.log("Attempting to create user profile for UID:", user.uid);
+    if (!user.uid) {
+        console.error("!!! CRITICAL: createUserProfile called with no UID! !!!");
+        return;
+    }
     const userRef = doc(db, "users", user.uid);
     
     try {
+        console.log("Checking if user document exists...");
         const userDocSnap = await getDoc(userRef);
 
         if (userDocSnap.exists()) {
-            // User profile already exists, no need to do anything.
+            console.log("User profile already exists. No action needed.");
             return;
         }
 
-        // Create a new user profile document.
+        console.log("User profile does not exist. Creating new one...");
         const newUserProfile: Omit<UserProfile, 'id' | 'createdAt' | 'isAdmin'> = {
             email: user.email || "",
             displayName: user.displayName || "New User",
@@ -65,12 +71,12 @@ export async function createUserProfile(user: { uid: string, email: string | nul
         await setDoc(userRef, {
             ...newUserProfile,
             createdAt: Timestamp.fromDate(new Date()),
-            isAdmin: false, // Default to not admin
+            isAdmin: false,
         });
+        console.log("SUCCESS: User profile created successfully in Firestore.");
 
     } catch (error) {
-        console.error("!!! CRITICAL: Error creating user profile in Firestore !!!", error);
-        // We throw an error here to make sure it's not silent.
+        console.error("!!! CRITICAL: Error in createUserProfile function !!!", error);
         throw new Error("Failed to create user profile in database.");
     }
 }
