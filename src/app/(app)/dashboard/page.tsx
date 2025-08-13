@@ -6,6 +6,7 @@ import DailyScheduleCard from "@/components/dashboard/daily-schedule-card";
 import UpcomingTasksCard from "@/components/dashboard/upcoming-tasks-card";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
+import DebugFirestore from "@/components/DebugFirestore";
 
 export default function Dashboard() {
     const [user] = useAuthState(auth);
@@ -18,6 +19,7 @@ export default function Dashboard() {
                 </h1>
                 <p className="text-muted-foreground">Here's a look at your day.</p>
             </div>
+            <DebugFirestore />
             <AnnouncementsCard />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <DailyScheduleCard />
