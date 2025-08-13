@@ -8,13 +8,13 @@ import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  apiKey: "AIzaSyA9XCsWRDMYKi4jVakH2ZwwCh5XQZ6AiEs",
+  authDomain: "pingly-b1de9.firebaseapp.com",
+  projectId: "pingly-b1de9",
+  storageBucket: "pingly-b1de9.appspot.com",
+  messagingSenderId: "1753113792496",
+  appId: "1:1753113792496:web:2f0e35320853724a955747",
+  measurementId: "G-9XG99F2H9E",
 };
 
 // Initialize Firebase for client-side

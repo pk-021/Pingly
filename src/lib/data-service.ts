@@ -45,7 +45,6 @@ function routineFromDoc(doc: any): CalendarEvent {
 
 // --- User Management ---
 export async function createUserProfile(user: { uid: string, email: string | null, displayName: string | null }): Promise<void> {
-    console.log("Attempting to create user profile for UID:", user.uid);
     if (!user.uid) {
         console.error("!!! CRITICAL: createUserProfile called with no UID! !!!");
         return;
@@ -53,15 +52,12 @@ export async function createUserProfile(user: { uid: string, email: string | nul
     const userRef = doc(db, "users", user.uid);
     
     try {
-        console.log("Checking if user document exists...");
         const userDocSnap = await getDoc(userRef);
 
         if (userDocSnap.exists()) {
-            console.log("User profile already exists. No action needed.");
             return;
         }
 
-        console.log("User profile does not exist. Creating new one...");
         const newUserProfile: Omit<UserProfile, 'id' | 'createdAt' | 'isAdmin'> = {
             email: user.email || "",
             displayName: user.displayName || "New User",
@@ -73,7 +69,6 @@ export async function createUserProfile(user: { uid: string, email: string | nul
             createdAt: Timestamp.fromDate(new Date()),
             isAdmin: false,
         });
-        console.log("SUCCESS: User profile created successfully in Firestore.");
 
     } catch (error) {
         console.error("!!! CRITICAL: Error in createUserProfile function !!!", error);
