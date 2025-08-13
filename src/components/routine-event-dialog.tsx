@@ -41,6 +41,7 @@ const eventSchema = z.object({
   startTime: z.string().min(1, 'Start time is required'),
   endTime: z.string().min(1, 'End time is required'),
 }).refine(data => {
+    if (!data.startTime || !data.endTime) return true;
     const [startHour, startMinute] = data.startTime.split(':').map(Number);
     const [endHour, endMinute] = data.endTime.split(':').map(Number);
     if (startHour > endHour || (startHour === endHour && startMinute >= endMinute)) {
@@ -86,6 +87,7 @@ export function RoutineEventDialog({ isOpen, onClose, onSave, onDelete, event, s
 
   const availableStartSlots = useMemo(() => {
     if (dayForConflictCheck === undefined) return timeSlots;
+    
     const routineForDay = routine.filter(r => r.dayOfWeek === dayForConflictCheck && r.id !== event?.id);
     
     return timeSlots.filter(slot => {
@@ -98,6 +100,32 @@ export function RoutineEventDialog({ isOpen, onClose, onSave, onDelete, event, s
         });
     });
   }, [routine, dayForConflictCheck, event?.id]);
+  
+  const availableEndSlots = useMemo(() => {
+      const startTime = form.watch('startTime');
+      if (!startTime || dayForConflictCheck === undefined) return timeSlots;
+
+      const [startHour, startMinute] = startTime.split(':').map(Number);
+      const startTimeInMinutes = startHour * 60 + startMinute;
+      
+      const routineForDay = routine.filter(r => r.dayOfWeek === dayForConflictCheck && r.id !== event?.id);
+      
+      const nextEvent = routineForDay
+          .map(r => getHours(r.startTime) * 60 + getMinutes(r.startTime))
+          .filter(time => time > startTimeInMinutes)
+          .sort((a,b) => a - b)[0];
+
+      return timeSlots.filter(slot => {
+          const [hour, minute] = slot.split(':').map(Number);
+          const slotTime = hour * 60 + minute;
+          
+          if (slotTime <= startTimeInMinutes) return false;
+          if (nextEvent && slotTime > nextEvent) return false;
+
+          return true;
+      });
+
+  }, [form, routine, dayForConflictCheck, event?.id]);
 
 
   useEffect(() => {
@@ -181,18 +209,21 @@ export function RoutineEventDialog({ isOpen, onClose, onSave, onDelete, event, s
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Start Time</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={(value) => {
+                            field.onChange(value);
+                            form.setValue('endTime', '');
+                        }} value={field.value}>
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder="Select a time" />
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            {availableStartSlots.map(slot => (
+                            {availableStartSlots.length > 0 ? availableStartSlots.map(slot => (
                                 <SelectItem key={slot} value={slot}>
                                     {format(new Date(`1970-01-01T${slot}:00`), 'p')}
                                 </SelectItem>
-                            ))}
+                            )) : <SelectItem value="-" disabled>No available slots</SelectItem>}
                         </SelectContent>
                         </Select>
                         <FormMessage />
@@ -205,14 +236,14 @@ export function RoutineEventDialog({ isOpen, onClose, onSave, onDelete, event, s
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>End Time</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!form.getValues('startTime')}>
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder="Select a time" />
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            {timeSlots.map(slot => (
+                            {availableEndSlots.map(slot => (
                                 <SelectItem key={slot} value={slot}>
                                     {format(new Date(`1970-01-01T${slot}:00`), 'p')}
                                 </SelectItem>
@@ -257,3 +288,5 @@ export function RoutineEventDialog({ isOpen, onClose, onSave, onDelete, event, s
     </Dialog>
   );
 }
+
+    
