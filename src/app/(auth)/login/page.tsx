@@ -1,7 +1,6 @@
 
 'use client';
 import { Button } from "@/components/ui/button";
-import { auth, db } from "@/lib/firebase";
 import { GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile, type User } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -9,10 +8,11 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { createUserProfile } from "@/lib/data-service";
-import { doc, getDoc } from "firebase/firestore";
+import { createUserProfile, debugAuthState, testSecurityRules, testFirestoreConnection } from "@/lib/data-service";
+import { getFirebaseApp, auth } from "@/lib/firebase";
 
 export default function LoginPage() {
+    const { db } = getFirebaseApp();
     const router = useRouter();
     const [user, loading] = useAuthState(auth);
     const [error, setError] = useState<string | null>(null);
@@ -20,12 +20,25 @@ export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
+    const [debugMode, setDebugMode] = useState(false);
 
     useEffect(() => {
         if (!loading && user) {
             router.replace('/dashboard');
         }
     }, [user, loading, router]);
+    
+    const runDiagnostics = async () => {
+        console.log("🔧 Running comprehensive diagnostics...");
+        debugAuthState();
+        
+        const isConnected = await testFirestoreConnection();
+        console.log("Firestore connectivity:", isConnected ? "✅ Connected" : "❌ Failed");
+        
+        if (auth.currentUser) {
+            await testSecurityRules();
+        }
+    };
 
 
     const handleAuthSuccess = async (user: User, newDisplayName?: string) => {
@@ -41,8 +54,13 @@ export default function LoginPage() {
             router.replace('/dashboard');
         } catch (e: any) {
              console.error("!!! CRITICAL: Failed to create or check profile after login. !!!", e);
-             setError(`Login successful, but failed to create profile: ${e.message}`);
-             alert(`Login successful, but failed to create your user profile. Please contact support. Error: ${e.message}`);
+             const errorMessage = `Login successful, but failed to create profile: ${e.message}`;
+             setError(errorMessage);
+             if (debugMode) {
+                alert(`Detailed Error Information:\n\nError: ${e.message}\nCode: ${e.code || 'unknown'}\nStack: ${e.stack}`);
+            } else {
+                alert(`${errorMessage}\n\nTip: Enable debug mode for more details.`);
+            }
         }
     }
     
@@ -77,7 +95,8 @@ export default function LoginPage() {
         try {
             const result = await signInWithPopup(auth, provider);
             await handleAuthSuccess(result.user);
-        } catch (error: any) {
+        } catch (error: any)
+        {
             setError(error.message);
         }
     };
@@ -126,7 +145,36 @@ export default function LoginPage() {
                             Enter your credentials to continue
                         </p>
                     </div>
-                    {error && <p className="text-sm text-center text-red-500 bg-red-100 p-2 rounded-md">{error}</p>}
+
+                    {error && (
+                        <div className="text-sm text-center text-red-500 bg-red-100 p-3 rounded-md border border-red-200">
+                            <div className="font-medium mb-1">Error</div>
+                            <div>{error}</div>
+                        </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-xs">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={debugMode}
+                                onChange={(e) => setDebugMode(e.target.checked)}
+                                className="w-3 h-3"
+                            />
+                            Debug Mode
+                        </label>
+                        {debugMode && (
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={runDiagnostics}
+                                className="text-xs px-2 py-1 h-auto"
+                            >
+                                Run Diagnostics
+                            </Button>
+                        )}
+                    </div>
+
                     <form onSubmit={handleEmailAuth} className="grid gap-4">
                         {isSignUp && (
                              <div className="grid gap-2">
@@ -182,10 +230,25 @@ export default function LoginPage() {
                     </Button>
                     <div className="mt-4 text-center text-sm">
                         {isSignUp ? "Already have an account?" : "Don't have an account?"}
-                        <Button variant="link" onClick={() => { setIsSignUp(!isSignUp); setError(null); }}>
+                        <Button variant="link" onClick={() => { 
+                            setIsSignUp(!isSignUp); 
+                            setError(null); 
+                            setEmail('');
+                            setPassword('');
+                            setDisplayName('');
+                        }}>
                             {isSignUp ? 'Login' : 'Sign Up'}
                         </Button>
                     </div>
+
+                    {debugMode && (
+                        <div className="text-xs bg-gray-50 p-3 rounded border">
+                            <div className="font-medium mb-2">Debug Info:</div>
+                            <div>Firebase Project: {db.app.options.projectId}</div>
+                            <div>Auth State: {user ? 'Authenticated' : 'Not authenticated'}</div>
+                            <div>Loading: {loading ? 'Yes' : 'No'}</div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

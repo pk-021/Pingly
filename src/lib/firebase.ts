@@ -19,13 +19,22 @@ const firebaseConfig = {
 
 // Initialize Firebase for client-side
 let app: FirebaseApp;
-if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig);
-} else {
-    app = getApp();
+let auth: Auth;
+let db: Firestore;
+
+function getFirebaseApp() {
+    if (getApps().length === 0) {
+        app = initializeApp(firebaseConfig);
+    } else {
+        app = getApp();
+    }
+    auth = getAuth(app);
+    db = getFirestore(app);
+    return { app, auth, db };
 }
 
-const auth = getAuth(app);
-const db = getFirestore(app);
+const initialized = getFirebaseApp();
+auth = initialized.auth;
+db = initialized.db;
 
-export { app, auth, db };
+export { getFirebaseApp, app, auth, db };
