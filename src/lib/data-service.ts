@@ -319,7 +319,7 @@ export function debugAuthState() {
 export async function testFirestoreConnection(): Promise<boolean> {
     console.log("Testing Firestore connectivity...");
     try {
-        const testRef = doc(db, '__test__', 'connectivity');
+        const testRef = doc(db, 'diagnostics', 'connectivity_test');
         await setDoc(testRef, { 
             test: true, 
             timestamp: Timestamp.now(),
