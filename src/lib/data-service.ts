@@ -300,20 +300,3 @@ export async function addAnnouncement(announcement: Omit<Announcement, 'id' | 'a
         ...newAnnouncementData
     } as Announcement;
 }
-
-// --- Debugging ---
-export async function testFirestoreConnection(): Promise<boolean> {
-    try {
-        const testRef = doc(db, 'diagnostics', 'connectivity_test');
-        await setDoc(testRef, { 
-            test: true, 
-            timestamp: Timestamp.now(),
-            userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'server'
-        });
-        await deleteDoc(testRef);
-        return true;
-    } catch (error) {
-        console.error("Firestore connectivity test failed:", error);
-        return false;
-    }
-}
