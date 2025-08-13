@@ -21,30 +21,33 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
 
-    const handleSuccessfulLogin = async (user: User) => {
-        const profile = await getUserProfile(user.uid);
-        if (!profile) {
-            // Profile doesn't exist, let's create it.
-            await createUserProfile({
-                uid: user.uid,
-                email: user.email,
-                displayName: user.displayName
-            });
-        }
-        router.replace('/dashboard');
-    }
-
+    // Redirect if user is already logged in
     useEffect(() => {
         if (!loading && user) {
-            handleSuccessfulLogin(user);
+            router.replace('/dashboard');
         }
     }, [user, loading, router]);
 
+
+    const handleAuthSuccess = async (user: User, newDisplayName?: string) => {
+        try {
+            // Ensure profile exists or is created
+            await createUserProfile({
+                uid: user.uid,
+                email: user.email,
+                displayName: newDisplayName || user.displayName
+            });
+            // Then navigate
+            router.replace('/dashboard');
+        } catch (e: any) {
+             setError(`Login successful, but failed to create profile: ${e.message}`);
+        }
+    }
+    
     const handleEmailAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
         if (isSignUp) {
-            // Sign Up
             if (!displayName) {
                 setError("Display name is required for sign up.");
                 return;
@@ -52,15 +55,14 @@ export default function LoginPage() {
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 await updateProfile(userCredential.user, { displayName });
-                // handleSuccessfulLogin will be triggered by the useEffect hook
+                await handleAuthSuccess(userCredential.user, displayName);
             } catch (error: any) {
                 setError(error.message);
             }
         } else {
-            // Sign In
             try {
-                await signInWithEmailAndPassword(auth, email, password);
-                 // handleSuccessfulLogin will be triggered by the useEffect hook
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                await handleAuthSuccess(userCredential.user);
             } catch (error: any) {
                 setError(error.message);
             }
@@ -71,8 +73,8 @@ export default function LoginPage() {
         setError(null);
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
-            // handleSuccessfulLogin will be triggered by the useEffect hook
+            const result = await signInWithPopup(auth, provider);
+            await handleAuthSuccess(result.user);
         } catch (error: any) {
             setError(error.message);
         }

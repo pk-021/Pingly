@@ -51,11 +51,11 @@ export async function createUserProfile(user: { uid: string, email: string | nul
         const userDocSnap = await getDoc(userRef);
 
         if (userDocSnap.exists()) {
-            console.log("User profile already exists for:", user.uid);
+            // User profile already exists, no need to do anything.
             return;
         }
 
-        console.log("Creating new user profile for:", user.uid);
+        // Create a new user profile document.
         const newUserProfile: Omit<UserProfile, 'id' | 'createdAt' | 'isAdmin'> = {
             email: user.email || "",
             displayName: user.displayName || "New User",
@@ -65,14 +65,13 @@ export async function createUserProfile(user: { uid: string, email: string | nul
         await setDoc(userRef, {
             ...newUserProfile,
             createdAt: Timestamp.fromDate(new Date()),
-            isAdmin: false,
+            isAdmin: false, // Default to not admin
         });
-        console.log("Successfully created user profile for:", user.uid);
 
     } catch (error) {
-        console.error("Error creating user profile:", error);
-        // This will help diagnose permission issues
-        alert("There was an error creating your user profile. Please check the console for details.");
+        console.error("!!! CRITICAL: Error creating user profile in Firestore !!!", error);
+        // We throw an error here to make sure it's not silent.
+        throw new Error("Failed to create user profile in database.");
     }
 }
 
