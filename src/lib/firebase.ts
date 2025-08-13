@@ -32,7 +32,9 @@ function getFirebaseApp() {
     return { app, auth, db };
 }
 
+// Initialize on load
 const initialized = getFirebaseApp();
+app = initialized.app;
 auth = initialized.auth;
 db = initialized.db;
 

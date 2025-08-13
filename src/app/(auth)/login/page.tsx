@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile, type User } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

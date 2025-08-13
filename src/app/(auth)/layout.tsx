@@ -1,14 +1,9 @@
 
 'use client';
-import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/firebase";
-import { GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile, type User } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { createUserProfile } from "@/lib/data-service";
 
 export default function AuthLayout({
   children,
