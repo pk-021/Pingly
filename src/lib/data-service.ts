@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import type { CalendarEvent, Task, UserProfile } from './types';
+import type { CalendarEvent, Task, UserProfile, Announcement } from './types';
 import { 
     collection, 
     addDoc, 
@@ -13,7 +14,9 @@ import {
     query,
     Timestamp,
     writeBatch,
-    setDoc
+    setDoc,
+    getDoc,
+    or
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
@@ -44,14 +47,14 @@ function routineFromDoc(doc: any): CalendarEvent {
 // --- User Management ---
 export async function createUserProfile(user: { uid: string, email: string | null, displayName: string | null }): Promise<void> {
     const userRef = doc(db, "users", user.uid);
-    const userDoc = await getDoc(userRef);
+    const userDocSnap = await getDoc(userRef);
 
-    if (userDoc.exists()) {
+    if (userDocSnap.exists()) {
         // User profile already exists, no need to create another one.
         return;
     }
 
-    const newUserProfile: Omit<UserProfile, 'id' | 'createdAt'> = {
+    const newUserProfile: Omit<UserProfile, 'id' | 'createdAt' | 'isAdmin'> = {
         email: user.email || "",
         displayName: user.displayName || "New User",
         department: "",
@@ -60,7 +63,42 @@ export async function createUserProfile(user: { uid: string, email: string | nul
     await setDoc(userRef, {
         ...newUserProfile,
         createdAt: Timestamp.fromDate(new Date()),
+        isAdmin: false, // Default new users to not be admins
     });
+}
+
+export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+    const userRef = doc(db, "users", uid);
+    const docSnap = await getDoc(userRef);
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        return {
+            id: docSnap.id,
+            ...data,
+            createdAt: (data.createdAt as Timestamp).toDate(),
+        } as UserProfile;
+    }
+    return null;
+}
+
+export async function getUsers(): Promise<UserProfile[]> {
+    try {
+        const usersRef = collection(db, "users");
+        const querySnapshot = await getDocs(usersRef);
+        const users: UserProfile[] = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            users.push({
+                id: doc.id,
+                ...data,
+                createdAt: (data.createdAt as Timestamp).toDate(),
+            } as UserProfile);
+        });
+        return users;
+    } catch (error) {
+        console.error("Error getting users: ", error);
+        return [];
+    }
 }
 
 
@@ -72,10 +110,12 @@ export async function getTasks(): Promise<Task[]> {
     try {
         const tasksRef = collection(db, "tasks");
         // Query for tasks created by the user OR assigned to the user
-        const q = query(tasksRef, where('creatorId', '==', user.uid));
-        // In a real scenario, you'd also query for tasks where assigneeId == user.uid
-        // const qAssigned = query(tasksRef, where('assigneeId', '==', user.uid));
-        // const [creatorTasksSnapshot, assignedTasksSnapshot] = await Promise.all([getDocs(q), getDocs(qAssigned)]);
+        const q = query(tasksRef, 
+            or(
+                where('creatorId', '==', user.uid),
+                where('assigneeId', '==', user.uid)
+            )
+        );
         
         const querySnapshot = await getDocs(q);
 
@@ -125,11 +165,17 @@ export async function updateTask(updatedTask: Task): Promise<Task> {
         ...taskData,
         dueDate: Timestamp.fromDate(dueDate),
     };
+    
     if (startTime) {
         dataToUpdate.startTime = Timestamp.fromDate(startTime);
+    } else {
+        dataToUpdate.startTime = null;
     }
+    
     if (endTime) {
         dataToUpdate.endTime = Timestamp.fromDate(endTime);
+    } else {
+        dataToUpdate.endTime = null;
     }
 
     await updateDoc(taskRef, dataToUpdate);
@@ -202,4 +248,46 @@ export async function deleteRoutineEvent(eventId: string): Promise<{ success: tr
     const eventRef = doc(db, "routines", eventId);
     await deleteDoc(eventRef);
     return { success: true };
+}
+
+
+// --- Announcements ---
+export async function getAnnouncements(): Promise<Announcement[]> {
+    try {
+        const announcementsRef = collection(db, "announcements");
+        const q = query(announcementsRef);
+        const querySnapshot = await getDocs(q);
+        const announcements: Announcement[] = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            announcements.push({
+                id: doc.id,
+                ...data,
+                createdAt: (data.createdAt as Timestamp).toDate(),
+            } as Announcement);
+        });
+        return announcements.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    } catch (error) {
+        console.error("Error getting announcements: ", error);
+        return [];
+    }
+}
+
+export async function addAnnouncement(announcement: Omit<Announcement, 'id' | 'authorId' | 'authorName' | 'createdAt'>): Promise<Announcement> {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not authenticated");
+
+    const newAnnouncementData = {
+        ...announcement,
+        authorId: user.uid,
+        authorName: user.displayName || 'Admin',
+        createdAt: Timestamp.fromDate(new Date()),
+    };
+
+    const docRef = await addDoc(collection(db, "announcements"), newAnnouncementData);
+    
+    return {
+        id: docRef.id,
+        ...newAnnouncementData
+    } as Announcement;
 }

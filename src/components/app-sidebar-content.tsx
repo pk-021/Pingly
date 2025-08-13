@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -15,6 +16,7 @@ import {
   Settings,
   BookOpen,
   LogOut,
+  Megaphone,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -32,6 +34,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from './ui/button';
+import { useEffect, useState } from 'react';
+import type { UserProfile } from '@/lib/types';
+import { getUserProfile } from '@/lib/data-service';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -39,10 +44,25 @@ const navItems = [
   { href: '/class-routine', label: 'Class Routine', icon: BookOpen },
 ];
 
+const adminNavItems = [
+    { href: '/announcements', label: 'Announcements', icon: Megaphone },
+];
+
 export function AppSidebarContent() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, loading] = useAuthState(auth);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    async function fetchProfile() {
+        if (user) {
+            const profile = await getUserProfile(user.uid);
+            setUserProfile(profile);
+        }
+    }
+    fetchProfile();
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -96,6 +116,19 @@ export function AppSidebarContent() {
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
+        ))}
+        {userProfile?.isAdmin && adminNavItems.map((item) => (
+            <SidebarMenuItem key={item.href}>
+                <Link href={item.href}>
+                    <SidebarMenuButton
+                        isActive={pathname === item.href}
+                        tooltip={{ children: item.label }}
+                    >
+                        <item.icon />
+                        <span>{item.label}</span>
+                    </SidebarMenuButton>
+                </Link>
+            </SidebarMenuItem>
         ))}
       </SidebarMenu>
 

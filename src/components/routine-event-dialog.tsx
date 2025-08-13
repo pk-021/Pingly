@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -66,8 +67,11 @@ type RoutineEventDialogProps = {
 const timeSlots = Array.from({ length: 24 * 2 }, (_, i) => {
     const hours = Math.floor(i / 2);
     const minutes = (i % 2) * 30;
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-});
+    return { hours, minutes };
+})
+.filter(({ hours }) => hours >= 6 && hours < 23) // Filter for times between 6 AM and 10:30 PM
+.map(({ hours, minutes }) => `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`);
+
 
 export function RoutineEventDialog({ isOpen, onClose, onSave, onDelete, event, selectedDate, routine }: RoutineEventDialogProps) {
   

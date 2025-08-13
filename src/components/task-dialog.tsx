@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import type { Task, CalendarEvent, DisplayItem } from '@/lib/types';
+import type { Task, CalendarEvent, DisplayItem, UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -38,6 +39,8 @@ import { cn } from '@/lib/utils';
 import { format, addHours, startOfDay, setHours, setMinutes, getHours, getMinutes, isSameDay, getDay } from 'date-fns';
 import { CalendarIcon, Trash2, Pencil, Clock } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
+import { getUsers } from '@/lib/data-service';
+import { auth } from '@/lib/firebase';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -50,6 +53,7 @@ const taskSchema = z.object({
   completionNotes: z.string().optional(),
   roomNumber: z.string().optional(),
   isRecurring: z.boolean().optional(),
+  assigneeId: z.string().optional(),
 }).refine(data => {
     if (data.startTime && !data.endTime) return false;
     if (!data.startTime && data.endTime) return false;
@@ -122,6 +126,17 @@ function getAvailableSlots(date: Date, allItems: (Task | CalendarEvent)[], curre
 
 export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, tasks }: TaskDialogProps) {
   const [isEditing, setIsEditing] = useState(!task);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+
+  useEffect(() => {
+    async function fetchUsers() {
+        const fetchedUsers = await getUsers();
+        setUsers(fetchedUsers);
+    }
+    if (isOpen) {
+        fetchUsers();
+    }
+  }, [isOpen]);
 
   const form = useForm<z.infer<typeof taskSchema>>({
     resolver: zodResolver(taskSchema),
@@ -136,6 +151,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
       completionNotes: '',
       roomNumber: '',
       isRecurring: false,
+      assigneeId: '',
     },
   });
 
@@ -165,6 +181,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
             completionNotes: task.completionNotes || '',
             roomNumber: task.roomNumber || '',
             isRecurring: task.isRecurring || false,
+            assigneeId: task.assigneeId || '',
           });
           setIsEditing(false);
         } else {
@@ -179,6 +196,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
             completionNotes: '',
             roomNumber: '',
             isRecurring: false,
+            assigneeId: '',
           });
           setIsEditing(true);
         }
@@ -213,6 +231,8 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
         } as any);
     }
   };
+
+  const assignee = users.find(u => u.id === task?.assigneeId);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -336,6 +356,29 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                    )}
                  />
                 </div>
+                 <FormField
+                   control={form.control}
+                   name="assigneeId"
+                   render={({ field }) => (
+                     <FormItem>
+                       <FormLabel>Assign to (Optional)</FormLabel>
+                       <Select onValueChange={field.onChange} defaultValue={field.value}>
+                         <FormControl>
+                           <SelectTrigger>
+                             <SelectValue placeholder="Select a person" />
+                           </SelectTrigger>
+                         </FormControl>
+                         <SelectContent>
+                           <SelectItem value="">Nobody (Personal Task)</SelectItem>
+                           {users.map(user => (
+                             <SelectItem key={user.id} value={user.id}>{user.displayName}</SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
                 {watchedDueDate && (
                     <div className="space-y-4 rounded-md border p-4">
                         <h4 className="flex items-center font-medium text-sm">
@@ -436,6 +479,19 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                             <p className="text-sm">{task.roomNumber}</p>
                         </div>
                     )}
+                    
+                    {assignee ? (
+                        <div>
+                            <h3 className="text-sm font-medium text-muted-foreground">Assigned To</h3>
+                            <p className="text-sm">{assignee.displayName} {task.creatorId === auth.currentUser?.uid && "(You assigned)"}</p>
+                        </div>
+                    ) : (
+                        <div>
+                            <h3 className="text-sm font-medium text-muted-foreground">Assigned To</h3>
+                            <p className="text-sm">Personal Task (Only you)</p>
+                        </div>
+                    )}
+
 
                     <div className="flex gap-8">
                         <div>

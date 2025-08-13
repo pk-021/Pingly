@@ -1,4 +1,5 @@
 
+
 export type CalendarEvent = {
   id: string;
   title: string;
@@ -38,6 +39,16 @@ export type UserProfile = {
     email: string;
     displayName: string;
     department?: string;
+    createdAt: Date;
+    isAdmin?: boolean;
+}
+
+export type Announcement = {
+    id: string;
+    title: string;
+    content: string;
+    authorId: string;
+    authorName: string;
     createdAt: Date;
 }
     

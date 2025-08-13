@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import DailyScheduleCard from "@/components/dashboard/daily-schedule-card";
@@ -8,6 +9,7 @@ import { PlusCircle } from "lucide-react";
 import Link from 'next/link';
 import { auth } from "@/lib/firebase";
 import { useAuthState } from 'react-firebase-hooks/auth';
+import AnnouncementsCard from '@/components/dashboard/announcements-card';
 
 export default function DashboardPage() {
   const [user] = useAuthState(auth);
@@ -30,10 +32,11 @@ export default function DashboardPage() {
         </div>
         
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-8">
+            <AnnouncementsCard />
             <DailyScheduleCard />
           </div>
-          <div>
+          <div className="lg:col-span-1">
             <UpcomingTasksCard />
           </div>
         </div>
