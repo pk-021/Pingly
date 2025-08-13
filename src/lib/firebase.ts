@@ -8,15 +8,14 @@ import { getFirestore, type Firestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyA9XCsWRDMYKi4jVakH2ZwwCh5XQZ6AiEs",
-  authDomain: "pingly-b1de9.firebaseapp.com",
-  projectId: "pingly-b1de9",
-  storageBucket: "pingly-b1de9.appspot.com",
-  messagingSenderId: "1753113792496",
-  appId: "1:1753113792496:web:2f0e35320853724a955747",
-  measurementId: "G-9XG99F2H9E",
-};
-
+    apiKey: "AIzaSyA9XCsWRDMYKi4jVakH2ZwwCh5XQZ6AiEs",
+    authDomain: "pingly-web-bu4og.firebaseapp.com", // Update this too
+    projectId: "pingly-web-bu4og", // Change this
+    storageBucket: "pingly-web-bu4og.appspot.com", // And this
+    messagingSenderId: "1753113792496",
+    appId: "1:1753113792496:web:2f0e35320853724a955747",
+    measurementId: "G-9XG99F2H9E",
+  };
 // Initialize Firebase for client-side
 let app: FirebaseApp;
 let auth: Auth;
