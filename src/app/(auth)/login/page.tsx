@@ -15,14 +15,18 @@ export default function LoginPage() {
 
   const handleAuthSuccess = async (user: User) => {
     try {
+        // This function will now safely handle both new and returning users.
         await createUserProfile({
             uid: user.uid,
             email: user.email,
             displayName: user.displayName
         });
+        // Using replace so the user can't go "back" to the login page.
         router.replace('/dashboard');
     } catch (e: any) {
-         const errorMessage = `Login successful, but failed to create profile: ${e.message}`;
+         // This error is specifically for when profile creation fails after a successful login.
+         const errorMessage = `Login successful, but failed to create your user profile: ${e.message}`;
+         console.error(errorMessage, e);
          setError(errorMessage);
          setLoading(false);
     }
@@ -43,11 +47,11 @@ export default function LoginPage() {
       if (error.code === 'auth/popup-closed-by-user') {
         setError('Sign-in was cancelled. Please try again.');
       } else if (error.code === 'auth/unauthorized-domain') {
-        setError('This domain is not authorized for Google Sign-In. Please check your Firebase configuration.');
+        setError('This domain is not authorized. Please check your Firebase and Google Cloud console settings.');
       } else if (error.code === 'auth/popup-blocked') {
         setError('Pop-up was blocked by your browser. Please allow pop-ups and try again.');
       } else {
-        setError(`Sign-in failed: ${error.message}`);
+        setError(`An unknown sign-in error occurred: ${error.message}`);
       }
       setLoading(false);
     }
@@ -58,7 +62,7 @@ export default function LoginPage() {
         <div className="grid gap-2 text-center">
             <h1 className="text-3xl font-bold">Sign In</h1>
             <p className="text-balance text-muted-foreground">
-                Use your Google account to sign in.
+                Use your Google account to access your dashboard.
             </p>
         </div>
 

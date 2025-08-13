@@ -49,16 +49,16 @@ function routineFromDoc(doc: any): CalendarEvent {
 // --- User Management ---
 export async function createUserProfile(user: { uid: string, email: string | null, displayName: string | null }): Promise<void> {
     if (!user.uid) {
-        console.error("No UID provided, cannot create user profile.");
-        return;
+        throw new Error("No UID provided, cannot create user profile.");
     }
     const userRef = doc(db, "users", user.uid);
     
     try {
         const userDocSnap = await getDoc(userRef);
 
+        // Only create a profile if one doesn't already exist.
         if (userDocSnap.exists()) {
-            console.log(`Profile for user ${user.uid} already exists.`);
+            console.log(`Profile for user ${user.uid} already exists. Skipping creation.`);
             return;
         }
         
@@ -69,6 +69,7 @@ export async function createUserProfile(user: { uid: string, email: string | nul
         };
         
         console.log(`Creating new profile for user ${user.uid}:`, newUserProfile);
+        // Set the isAdmin flag to false for all new users by default.
         await setDoc(userRef, {
             ...newUserProfile,
             createdAt: Timestamp.fromDate(new Date()),
@@ -77,8 +78,8 @@ export async function createUserProfile(user: { uid: string, email: string | nul
         console.log(`Successfully created profile for user ${user.uid}.`);
 
     } catch (error) {
-        console.error("Error creating user profile: ", error);
-        throw new Error("Failed to create user profile in database.");
+        console.error("Error in createUserProfile: ", error);
+        throw new Error("Failed to create or check for user profile in database.");
     }
 }
 
