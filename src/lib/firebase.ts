@@ -12,8 +12,8 @@ const firebaseConfig = {
     authDomain: "pingly-web-bu4og.firebaseapp.com",
     projectId: "pingly-web-bu4og",
     storageBucket: "pingly-web-bu4og.appspot.com",
-    messagingSenderId: "1753113792496",
-    appId: "1:1753113792496:web:2f0e35320853724a955747",
+    messagingSenderId: "1062973792496",
+    appId: "1:1062973792496:web:2f0e35320853724a955747",
     measurementId: "G-9XG99F2H9E",
   };
 // Initialize Firebase for client-side
