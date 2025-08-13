@@ -8,7 +8,6 @@ import { useState, useEffect } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { createUserProfile } from "@/lib/data-service";
 
 export default function AuthLayout({
