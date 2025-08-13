@@ -1,7 +1,7 @@
 
 'use client';
 import { Button } from "@/components/ui/button";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile, type User } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { createUserProfile } from "@/lib/data-service";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -28,12 +29,15 @@ export default function LoginPage() {
 
 
     const handleAuthSuccess = async (user: User, newDisplayName?: string) => {
+        console.log(`Auth successful for user: ${user.uid}`);
         try {
+            console.log("Calling createUserProfile...");
             await createUserProfile({
                 uid: user.uid,
                 email: user.email,
                 displayName: newDisplayName || user.displayName
             });
+            console.log("Profile creation process finished, navigating to dashboard.");
             router.replace('/dashboard');
         } catch (e: any) {
              console.error("!!! CRITICAL: Failed to create or check profile after login. !!!", e);
