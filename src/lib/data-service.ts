@@ -302,15 +302,7 @@ export async function addAnnouncement(announcement: Omit<Announcement, 'id' | 'a
 }
 
 // --- Debugging ---
-export function debugAuthState() {
-    console.log("=== Auth State Debug ===");
-    console.log("Current user:", auth.currentUser);
-    console.log("Firebase app name:", db.app.name);
-    console.log("Firestore project ID:", db.app.options.projectId);
-}
-
 export async function testFirestoreConnection(): Promise<boolean> {
-    console.log("Testing Firestore connectivity...");
     try {
         const testRef = doc(db, 'diagnostics', 'connectivity_test');
         await setDoc(testRef, { 
@@ -318,38 +310,10 @@ export async function testFirestoreConnection(): Promise<boolean> {
             timestamp: Timestamp.now(),
             userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'server'
         });
-        console.log("✅ Firestore write test successful");
         await deleteDoc(testRef);
-        console.log("✅ Firestore delete test successful");
         return true;
     } catch (error) {
-        console.error("❌ Firestore connectivity test failed:", error);
+        console.error("Firestore connectivity test failed:", error);
         return false;
-    }
-}
-
-export async function testSecurityRules(): Promise<void> {
-    console.log("Testing security rules...");
-    
-    if (!auth.currentUser) {
-        console.error("❌ No authenticated user for security rule test");
-        return;
-    }
-    
-    const testUserId = auth.currentUser.uid;
-    const testRef = doc(db, "users", testUserId);
-    
-    try {
-        await setDoc(testRef, { testWrite: Timestamp.now() }, { merge: true });
-        console.log("✅ Write permission test passed");
-        
-        await getDoc(testRef);
-        console.log("✅ Read permission test passed");
-        
-    } catch (error: any) {
-        console.error("❌ Security rule test failed:", error);
-        if (error.code === 'permission-denied') {
-            console.error("🔐 Security rules are blocking this operation for path:", testRef.path);
-        }
     }
 }
