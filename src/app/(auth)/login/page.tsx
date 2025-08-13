@@ -2,13 +2,14 @@
 'use client';
 
 import { useState } from 'react';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, User } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, User, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { createUserProfile } from '@/lib/data-service';
+import { Separator } from '@/components/ui/separator';
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -21,14 +22,20 @@ export default function LoginPage() {
 
   const handleAuthSuccess = async (user: User, name?: string) => {
     try {
-      if (isSignUp && name) {
-        await updateProfile(user, { displayName: name });
-        await createUserProfile({
-            uid: user.uid,
-            email: user.email,
-            displayName: name
-        });
+      // For sign up, the name is provided from the form.
+      // For Google sign in, the name comes from the Google profile.
+      const finalName = name || user.displayName;
+
+      if (!user.displayName && finalName) {
+        await updateProfile(user, { displayName: finalName });
       }
+
+      await createUserProfile({
+          uid: user.uid,
+          email: user.email,
+          displayName: finalName
+      });
+      
       router.replace('/dashboard');
     } catch (e: any) {
       const errorMessage = `Authentication successful, but failed to set up user profile: ${e.message}`;
@@ -39,7 +46,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -70,7 +77,7 @@ export default function LoginPage() {
                 break;
             case 'auth/email-already-in-use':
                 errorMessage = 'An account with this email already exists. Please sign in.';
-                setIsSignUp(false); // Switch to sign-in mode
+                setIsSignUp(false);
                 break;
             case 'auth/weak-password':
                 errorMessage = 'The password must be at least 6 characters long.';
@@ -87,6 +94,24 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      await handleAuthSuccess(result.user);
+    } catch (error: any) {
+      console.error("Google Sign-In Error:", error);
+      let errorMessage = `Google Sign-In failed: ${error.message}`;
+      if (error.code === 'auth/account-exists-with-different-credential') {
+          errorMessage = "An account already exists with the same email address but different sign-in credentials. Try signing in with the original method.";
+      }
+      setError(errorMessage);
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="mx-auto grid w-[350px] gap-6">
       <div className="grid gap-2 text-center">
@@ -96,7 +121,7 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid gap-4">
+      <form onSubmit={handleEmailSubmit} className="grid gap-4">
         {isSignUp && (
             <div className="grid gap-2">
                 <Label htmlFor="name">Name</Label>
@@ -149,6 +174,22 @@ export default function LoginPage() {
           {loading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In')}
         </Button>
       </form>
+      
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">
+            Or continue with
+          </span>
+        </div>
+      </div>
+
+      <Button variant="outline" onClick={handleGoogleSignIn} disabled={loading}>
+        <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 381.5 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 177.2 56.4l-63.1 61.9C338.4 99.8 298.8 80 248 80c-82.8 0-150.5 67.7-150.5 150.5S165.2 406.5 248 406.5c48.4 0 91.4-21.8 122.3-56.9l-66.3-54.3c-15.1 32.3-46.2 54.3-82.3 54.3-50.5 0-93.9-39.2-105.4-90.3H40.2c21.8 103.9 120.3 177.3 228.3 177.3 64.9 0 122.6-24.1 163.5-64.4 20.3-20.1 34.1-46.3 43-75.3H248v-96.1h239.9z"></path></svg>
+        Google
+      </Button>
       
       <div className="mt-4 text-center text-sm">
         {isSignUp ? 'Already have an account?' : "Don't have an account?"}
