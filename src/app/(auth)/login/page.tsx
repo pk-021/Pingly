@@ -2,14 +2,14 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { auth, db } from "@/lib/firebase";
-import { GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile } from "firebase/auth";
+import { GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile, type User } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { createUserProfile } from "@/lib/data-service";
+import { createUserProfile, getUserProfile } from "@/lib/data-service";
 import { doc, getDoc } from "firebase/firestore";
 
 export default function LoginPage() {
@@ -21,9 +21,22 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [displayName, setDisplayName] = useState('');
 
+    const handleSuccessfulLogin = async (user: User) => {
+        const profile = await getUserProfile(user.uid);
+        if (!profile) {
+            // Profile doesn't exist, let's create it.
+            await createUserProfile({
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName
+            });
+        }
+        router.replace('/dashboard');
+    }
+
     useEffect(() => {
         if (!loading && user) {
-            router.replace('/dashboard');
+            handleSuccessfulLogin(user);
         }
     }, [user, loading, router]);
 
@@ -39,13 +52,7 @@ export default function LoginPage() {
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 await updateProfile(userCredential.user, { displayName });
-                
-                await createUserProfile({
-                    uid: userCredential.user.uid,
-                    email: userCredential.user.email,
-                    displayName: displayName
-                });
-                router.replace('/dashboard');
+                // handleSuccessfulLogin will be triggered by the useEffect hook
             } catch (error: any) {
                 setError(error.message);
             }
@@ -53,7 +60,7 @@ export default function LoginPage() {
             // Sign In
             try {
                 await signInWithEmailAndPassword(auth, email, password);
-                router.replace('/dashboard');
+                 // handleSuccessfulLogin will be triggered by the useEffect hook
             } catch (error: any) {
                 setError(error.message);
             }
@@ -64,20 +71,8 @@ export default function LoginPage() {
         setError(null);
         const provider = new GoogleAuthProvider();
         try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-
-            const userDocRef = doc(db, "users", user.uid);
-            const userDoc = await getDoc(userDocRef);
-
-            if (!userDoc.exists()) {
-                await createUserProfile({
-                    uid: user.uid,
-                    email: user.email,
-                    displayName: user.displayName
-                });
-            }
-            router.replace('/dashboard');
+            await signInWithPopup(auth, provider);
+            // handleSuccessfulLogin will be triggered by the useEffect hook
         } catch (error: any) {
             setError(error.message);
         }

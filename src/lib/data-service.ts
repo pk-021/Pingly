@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import type { CalendarEvent, Task, UserProfile, Announcement } from './types';
@@ -47,24 +46,34 @@ function routineFromDoc(doc: any): CalendarEvent {
 // --- User Management ---
 export async function createUserProfile(user: { uid: string, email: string | null, displayName: string | null }): Promise<void> {
     const userRef = doc(db, "users", user.uid);
-    const userDocSnap = await getDoc(userRef);
+    
+    try {
+        const userDocSnap = await getDoc(userRef);
 
-    if (userDocSnap.exists()) {
-        // User profile already exists, no need to create another one.
-        return;
+        if (userDocSnap.exists()) {
+            console.log("User profile already exists for:", user.uid);
+            return;
+        }
+
+        console.log("Creating new user profile for:", user.uid);
+        const newUserProfile: Omit<UserProfile, 'id' | 'createdAt' | 'isAdmin'> = {
+            email: user.email || "",
+            displayName: user.displayName || "New User",
+            department: "",
+        };
+        
+        await setDoc(userRef, {
+            ...newUserProfile,
+            createdAt: Timestamp.fromDate(new Date()),
+            isAdmin: false,
+        });
+        console.log("Successfully created user profile for:", user.uid);
+
+    } catch (error) {
+        console.error("Error creating user profile:", error);
+        // This will help diagnose permission issues
+        alert("There was an error creating your user profile. Please check the console for details.");
     }
-
-    const newUserProfile: Omit<UserProfile, 'id' | 'createdAt' | 'isAdmin'> = {
-        email: user.email || "",
-        displayName: user.displayName || "New User",
-        department: "",
-    };
-    // Use setDoc to create a document with a specific ID (the user's UID)
-    await setDoc(userRef, {
-        ...newUserProfile,
-        createdAt: Timestamp.fromDate(new Date()),
-        isAdmin: false, // Default new users to not be admins
-    });
 }
 
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
@@ -137,14 +146,16 @@ export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>
 
     const { dueDate, startTime, endTime, ...rest } = task;
 
-    const newTaskData = {
+    const newTaskData: any = {
         ...rest,
         creatorId: user.uid,
         completed: false,
-        dueDate: Timestamp.fromDate(dueDate),
-        ...(startTime && { startTime: Timestamp.fromDate(startTime) }),
-        ...(endTime && { endTime: Timestamp.fromDate(endTime) }),
     };
+    
+    if (dueDate) newTaskData.dueDate = Timestamp.fromDate(dueDate);
+    if (startTime) newTaskData.startTime = Timestamp.fromDate(startTime);
+    if (endTime) newTaskData.endTime = Timestamp.fromDate(endTime);
+
 
     const docRef = await addDoc(collection(db, "tasks"), newTaskData);
     
@@ -158,20 +169,16 @@ export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>
 
 export async function updateTask(updatedTask: Task): Promise<Task> {
     const taskRef = doc(db, "tasks", updatedTask.id);
-    // The 'id' is not stored in the Firestore document itself
     const { id, dueDate, startTime, endTime, ...taskData } = updatedTask;
 
-    const dataToUpdate: any = {
-        ...taskData,
-        dueDate: Timestamp.fromDate(dueDate),
-    };
+    const dataToUpdate: any = { ...taskData };
     
+    if (dueDate) dataToUpdate.dueDate = Timestamp.fromDate(dueDate);
     if (startTime) {
         dataToUpdate.startTime = Timestamp.fromDate(startTime);
     } else {
         dataToUpdate.startTime = null;
     }
-    
     if (endTime) {
         dataToUpdate.endTime = Timestamp.fromDate(endTime);
     } else {
