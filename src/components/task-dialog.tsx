@@ -181,7 +181,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
             completionNotes: task.completionNotes || '',
             roomNumber: task.roomNumber || '',
             isRecurring: task.isRecurring || false,
-            assigneeId: task.assigneeId || '',
+            assigneeId: task.assigneeId || 'personal',
           });
           setIsEditing(false);
         } else {
@@ -196,7 +196,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
             completionNotes: '',
             roomNumber: '',
             isRecurring: false,
-            assigneeId: '',
+            assigneeId: 'personal',
           });
           setIsEditing(true);
         }
@@ -204,8 +204,14 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
   }, [task, isOpen, form]);
   
   const handleSave = (data: z.infer<typeof taskSchema>) => {
-    const { startTime, endTime, ...restData } = data;
+    const { startTime, endTime, assigneeId, ...restData } = data;
     let finalTaskData: Omit<Task, 'id' | 'completed' | 'creatorId'> | Task = { ...task, ...restData, completed: task?.completed || false };
+
+    if (assigneeId === 'personal') {
+        (finalTaskData as Task).assigneeId = undefined;
+    } else {
+        (finalTaskData as Task).assigneeId = assigneeId;
+    }
     
     if (startTime && endTime) {
         const [startHour, startMinute] = startTime.split(':').map(Number);
@@ -371,7 +377,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                            </SelectTrigger>
                          </FormControl>
                          <SelectContent>
-                           <SelectItem value="">Nobody (Personal Task)</SelectItem>
+                           <SelectItem value="personal">Nobody (Personal Task)</SelectItem>
                            {users.map(user => (
                              <SelectItem key={user.id} value={user.id}>{user.displayName}</SelectItem>
                            ))}
