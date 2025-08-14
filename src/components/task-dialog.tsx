@@ -37,10 +37,13 @@ import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { format, addHours, startOfDay, setHours, setMinutes, getHours, getMinutes, isSameDay, getDay } from 'date-fns';
-import { CalendarIcon, Trash2, Pencil, Clock } from 'lucide-react';
+import { CalendarIcon, Trash2, Pencil, Clock, Info } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { getAllUsers } from '@/lib/data-service';
 import { auth } from '@/lib/firebase';
+import { ScrollArea } from './ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -160,10 +163,14 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
 
   const allItems = useMemo(() => [...routine, ...tasks], [routine, tasks]);
 
+  const availableSlots = useMemo(() => {
+    if (!watchedDueDate) return [];
+    return getAvailableSlots(watchedDueDate, allItems, task?.id);
+  }, [watchedDueDate, allItems, task?.id])
+
   const availableStartSlots = useMemo(() => {
-      if (!watchedDueDate) return [];
-      return getAvailableSlots(watchedDueDate, allItems, task?.id).map(s => s.start);
-  }, [watchedDueDate, allItems, task?.id]);
+      return availableSlots.map(s => s.start);
+  }, [availableSlots]);
 
   const availableEndSlots = useMemo(() => {
       if (!watchedStartTime || !watchedDueDate) return [];
@@ -171,8 +178,6 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
       const [startHour, startMinute] = watchedStartTime.split(':').map(Number);
       const startTimeDate = setMinutes(setHours(watchedDueDate, startHour), startMinute);
 
-      const allPossibleSlots = getAvailableSlots(watchedDueDate, allItems, task?.id);
-      
       // Find the next event that starts after our chosen start time
       const nextConflict = allItems
           .filter(item => item.id !== task?.id)
@@ -185,18 +190,19 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
               }
               return null;
           })
-          .filter(date => date && date > startTimeDate)
+          .filter((date): date is Date => date !== null)
+          .filter(date => date > startTimeDate)
           .sort((a, b) => a!.getTime() - b!.getTime())
           [0];
 
       const endBoundary = nextConflict || setMinutes(setHours(startOfDay(watchedDueDate), workingHours.end), 0);
 
       // Filter slots that are after the start time but not after the next conflict
-      return allPossibleSlots
+      return availableSlots
           .map(s => s.end)
           .filter(slotEnd => slotEnd > startTimeDate && slotEnd <= endBoundary);
 
-  }, [watchedStartTime, watchedDueDate, allItems, task?.id]);
+  }, [watchedStartTime, watchedDueDate, allItems, task?.id, availableSlots]);
 
 
   useEffect(() => {
@@ -274,7 +280,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <div className="flex justify-between items-center">
              <DialogTitle>{task ? (isEditing ? 'Edit Task' : 'Task Details') : 'Add New Task'}</DialogTitle>
@@ -288,206 +294,240 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
         
         {isEditing ? (
              <Form {...form}>
-             <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4">
-               <FormField
-                 control={form.control}
-                 name="title"
-                 render={({ field }) => (
-                   <FormItem>
-                     <FormLabel>Title</FormLabel>
-                     <FormControl>
-                       <Input placeholder="e.g., Grade Midterm Exams" {...field} />
-                     </FormControl>
-                     <FormMessage />
-                   </FormItem>
-                 )}
-               />
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
+             <form onSubmit={form.handleSubmit(handleSave)} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+               <div className="space-y-4">
+                    <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Add more details about the task..." {...field} />
-                      </FormControl>
-                      <FormMessage />
+                        <FormLabel>Title</FormLabel>
+                        <FormControl>
+                        <Input placeholder="e.g., Grade Midterm Exams" {...field} />
+                        </FormControl>
+                        <FormMessage />
                     </FormItem>
-                  )}
+                    )}
                 />
-                <FormField
-                  control={form.control}
-                  name="roomNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., Library Room 3" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <FormField
-                   control={form.control}
-                   name="priority"
-                   render={({ field }) => (
-                     <FormItem className="flex-1">
-                       <FormLabel>Priority</FormLabel>
-                       <Select onValueChange={field.onChange} defaultValue={field.value}>
-                         <FormControl>
-                           <SelectTrigger>
-                             <SelectValue placeholder="Select priority" />
-                           </SelectTrigger>
-                         </FormControl>
-                         <SelectContent>
-                           <SelectItem value="High">High</SelectItem>
-                           <SelectItem value="Medium">Medium</SelectItem>
-                           <SelectItem value="Low">Low</SelectItem>
-                         </SelectContent>
-                       </Select>
-                       <FormMessage />
-                     </FormItem>
-                   )}
-                 />
-                 <FormField
-                   control={form.control}
-                   name="dueDate"
-                   render={({ field }) => (
-                     <FormItem className="flex-1 flex flex-col">
-                       <FormLabel>Due Date</FormLabel>
-                       <Popover>
-                         <PopoverTrigger asChild>
-                           <FormControl>
-                             <Button
-                               variant={'outline'}
-                               className={cn(
-                                 'w-full justify-start text-left font-normal',
-                                 !field.value && 'text-muted-foreground'
-                               )}
-                             >
-                               <CalendarIcon className="mr-2 h-4 w-4" />
-                               {field.value ? (
-                                 format(field.value, 'PPP')
-                               ) : (
-                                 <span>Pick a date</span>
-                               )}
-                             </Button>
-                           </FormControl>
-                         </PopoverTrigger>
-                         <PopoverContent className="w-auto p-0" align="start">
-                           <Calendar
-                             mode="single"
-                             selected={field.value}
-                             onSelect={(date) => {
-                                if (date) {
-                                    field.onChange(date);
-                                }
-                                form.setValue('startTime', '');
-                                form.setValue('endTime', '');
-                             }}
-                             initialFocus
-                           />
-                         </PopoverContent>
-                       </Popover>
-                       <FormMessage />
-                     </FormItem>
-                   )}
-                 />
-                </div>
-                 <FormField
-                   control={form.control}
-                   name="assigneeId"
-                   render={({ field }) => (
-                     <FormItem>
-                       <FormLabel>Assign to (Optional)</FormLabel>
-                       <Select onValueChange={field.onChange} defaultValue={field.value}>
-                         <FormControl>
-                           <SelectTrigger>
-                             <SelectValue placeholder="Select a person" />
-                           </SelectTrigger>
-                         </FormControl>
-                         <SelectContent>
-                           <SelectItem value="personal">Nobody (Personal Task)</SelectItem>
-                           {users.map(user => (
-                             <SelectItem key={user.id} value={user.id}>{user.displayName}</SelectItem>
-                           ))}
-                         </SelectContent>
-                       </Select>
-                       <FormMessage />
-                     </FormItem>
-                   )}
-                 />
-                {watchedDueDate && (
-                    <div className="space-y-4 rounded-md border p-4">
-                        <h4 className="flex items-center font-medium text-sm">
-                            <Clock className="mr-2 h-4 w-4" />
-                            Schedule Time (Optional)
-                        </h4>
-                        {availableStartSlots.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="startTime"
-                                render={({ field }) => (
+                    <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Description (Optional)</FormLabel>
+                        <FormControl>
+                            <Textarea placeholder="Add more details about the task..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="roomNumber"
+                            render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Start Time</FormLabel>
-                                    <Select 
-                                        onValueChange={(value) => {
-                                            field.onChange(value);
-                                            form.setValue('endTime', '');
-                                        }} 
-                                        value={field.value}
-                                    >
+                                <FormLabel>Location (Optional)</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., Library Room 3" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="priority"
+                            render={({ field }) => (
+                                <FormItem className="flex-1">
+                                <FormLabel>Priority</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
-                                        <SelectTrigger>
-                                        <SelectValue placeholder="Select a start time" />
-                                        </SelectTrigger>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select priority" />
+                                    </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {availableStartSlots.map(slot => (
-                                            <SelectItem key={slot.toISOString()} value={format(slot, 'HH:mm')}>
-                                                {format(slot, 'p')}
-                                            </SelectItem>
-                                        ))}
+                                    <SelectItem value="High">High</SelectItem>
+                                    <SelectItem value="Medium">Medium</SelectItem>
+                                    <SelectItem value="Low">Low</SelectItem>
                                     </SelectContent>
-                                    </Select>
-                                    <FormMessage />
+                                </Select>
+                                <FormMessage />
                                 </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="endTime"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>End Time</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={!form.getValues('startTime')}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                        <SelectValue placeholder="Select an end time" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {availableEndSlots.map(slot => (
-                                            <SelectItem key={slot.toISOString()} value={format(slot, 'HH:mm')}>
-                                                {format(slot, 'p')}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            </div>
-                        ) : (
-                            <p className="text-sm text-muted-foreground text-center py-2">No available time slots for this day.</p>
-                        )}
+                            )}
+                        />
                     </div>
+                    <FormField
+                        control={form.control}
+                        name="assigneeId"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Assign to (Optional)</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a person" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                <SelectItem value="personal">Nobody (Personal Task)</SelectItem>
+                                {users.map(user => (
+                                    <SelectItem key={user.id} value={user.id}>{user.displayName}</SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+               </div>
+               <div className="space-y-4">
+                    <FormField
+                        control={form.control}
+                        name="dueDate"
+                        render={({ field }) => (
+                            <FormItem className="flex-1 flex flex-col">
+                            <FormLabel>Due Date</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button
+                                    variant={'outline'}
+                                    className={cn(
+                                        'w-full justify-start text-left font-normal',
+                                        !field.value && 'text-muted-foreground'
+                                    )}
+                                    >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {field.value ? (
+                                        format(field.value, 'PPP')
+                                    ) : (
+                                        <span>Pick a date</span>
+                                    )}
+                                    </Button>
+                                </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={(date) => {
+                                        if (date) {
+                                            field.onChange(date);
+                                        }
+                                        form.setValue('startTime', '');
+                                        form.setValue('endTime', '');
+                                    }}
+                                    initialFocus
+                                />
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    
+                    {watchedDueDate && (
+                    <Collapsible defaultOpen className="space-y-4 rounded-md border p-4">
+                        <CollapsibleTrigger asChild>
+                             <div className="flex items-center justify-between cursor-pointer">
+                                <h4 className="flex items-center font-medium text-sm">
+                                    <Clock className="mr-2 h-4 w-4" />
+                                    Schedule Time (Optional)
+                                </h4>
+                                <Button variant="ghost" size="sm" className="w-9 p-0">
+                                    <Info className="h-4 w-4" />
+                                    <span className="sr-only">Toggle</span>
+                                </Button>
+                            </div>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="space-y-4">
+                        {availableSlots.length > 0 ? (
+                            <>
+                                <Alert>
+                                    <Clock className="h-4 w-4" />
+                                    <AlertTitle>Free Slots for {format(watchedDueDate, 'MMMM d')}</AlertTitle>
+                                    <AlertDescription>
+                                        <ScrollArea className="h-24 mt-2">
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {availableSlots.map((slot, index) => (
+                                                    <Badge variant="outline" key={index} className="justify-center font-mono">
+                                                        {format(slot.start, 'p')}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                    </AlertDescription>
+                                </Alert>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="startTime"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Start Time</FormLabel>
+                                        <Select 
+                                            onValueChange={(value) => {
+                                                field.onChange(value);
+                                                form.setValue('endTime', '');
+                                            }} 
+                                            value={field.value}
+                                        >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                            <SelectValue placeholder="Select start" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {availableStartSlots.map(slot => (
+                                                <SelectItem key={slot.toISOString()} value={format(slot, 'HH:mm')}>
+                                                    {format(slot, 'p')}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="endTime"
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>End Time</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={!form.getValues('startTime')}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                            <SelectValue placeholder="Select end" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {availableEndSlots.map(slot => (
+                                                <SelectItem key={slot.toISOString()} value={format(slot, 'HH:mm')}>
+                                                    {format(slot, 'p')}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                </div>
+                            </>
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center py-6">No available time slots to schedule on this day.</p>
+                        )}
+                        </CollapsibleContent>
+                    </Collapsible>
                 )}
-               <DialogFooter>
+
+               </div>
+               <DialogFooter className="md:col-span-2">
                  <DialogClose asChild>
                    <Button type="button" variant="ghost">Cancel</Button>
                  </DialogClose>
@@ -604,3 +644,5 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
     </Dialog>
   );
 }
+
+    
