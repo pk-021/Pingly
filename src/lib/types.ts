@@ -51,5 +51,6 @@ export type Announcement = {
     authorId: string;
     authorName: string;
     createdAt: Date;
+    targetRoles: string[];
 }
     

@@ -314,9 +314,17 @@ export async function deleteRoutineEvent(eventId: string): Promise<{ success: tr
 // --- Announcements ---
 export async function getAnnouncements(): Promise<Announcement[]> {
     try {
+        const user = auth.currentUser;
+        if (!user) return [];
+
+        const userProfile = await getUserProfile(user.uid);
+        if (!userProfile) return [];
+
         const announcementsRef = collection(db, "announcements");
-        const q = query(announcementsRef);
+        // Query for announcements where the user's role is in the targetRoles array
+        const q = query(announcementsRef, where('targetRoles', 'array-contains', userProfile.role));
         const querySnapshot = await getDocs(q);
+
         const announcements: Announcement[] = [];
         querySnapshot.forEach((doc) => {
             const data = doc.data();
@@ -333,7 +341,7 @@ export async function getAnnouncements(): Promise<Announcement[]> {
     }
 }
 
-export async function addAnnouncement(announcement: Omit<Announcement, 'id' | 'authorId' | 'authorName' | 'createdAt'>): Promise<Announcement> {
+export async function addAnnouncement(announcement: Omit<Announcement, 'id' | 'authorId' | 'authorName' | 'createdAt' | 'targetRoles'>): Promise<Announcement> {
     const user = auth.currentUser;
     if (!user) throw new Error("User not authenticated");
 
@@ -352,3 +360,4 @@ export async function addAnnouncement(announcement: Omit<Announcement, 'id' | 'a
         createdAt: newAnnouncementData.createdAt.toDate(),
     } as Announcement;
 }
+

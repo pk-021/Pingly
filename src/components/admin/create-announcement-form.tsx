@@ -1,10 +1,11 @@
 
 'use client';
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { createAnnouncement } from '@/lib/data-service';
+import { createAnnouncement, getAllUsers } from '@/lib/data-service';
+import type { UserProfile } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -12,6 +13,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { ScrollArea } from '../ui/scroll-area';
 
 const announcementSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters long.'),
@@ -25,6 +36,8 @@ const roles = ['HoD', 'dHoD', 'MSc Coordinator', 'Lecturer', 'Non-Teaching Staff
 
 export function CreateAnnouncementForm() {
   const { toast } = useToast();
+  const [showConfirmation, setShowConfirmation] = React.useState(false);
+  const [confirmationData, setConfirmationData] = React.useState<{title: string, content: string, recipients: UserProfile[]}>({ title: '', content: '', recipients: [] });
 
   const form = useForm<z.infer<typeof announcementSchema>>({
     resolver: zodResolver(announcementSchema),
@@ -37,11 +50,19 @@ export function CreateAnnouncementForm() {
 
   const handleSubmit = async (data: z.infer<typeof announcementSchema>) => {
     try {
-      await createAnnouncement(data);
-      toast({
-        title: 'Announcement Sent',
-        description: 'Your announcement has been successfully sent to the selected roles.',
+      const allUsers = await getAllUsers();
+      const recipients = allUsers.filter(user => data.targetRoles.includes(user.role));
+      
+      setConfirmationData({
+          title: "Announcement Sent!",
+          content: "The following users will now see the new announcement on their dashboard.",
+          recipients: recipients,
       });
+      
+      await createAnnouncement(data);
+
+      setShowConfirmation(true);
+      
       form.reset();
     } catch (error) {
       toast({
@@ -53,10 +74,11 @@ export function CreateAnnouncementForm() {
   };
 
   return (
+    <>
     <Card>
         <CardHeader>
             <CardTitle>Create Announcement</CardTitle>
-            <CardDescription>Compose and send a new message.</CardDescription>
+            <CardDescription>Compose and send a new message. This will appear on the dashboard for selected roles.</CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
@@ -142,5 +164,29 @@ export function CreateAnnouncementForm() {
             </Form>
         </CardContent>
     </Card>
+    <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmationData.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmationData.content}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ScrollArea className="max-h-60 w-full rounded-md border p-4">
+             <div className="space-y-2">
+                {confirmationData.recipients.map(user => (
+                  <div key={user.id} className="text-sm">
+                    <span className="font-medium">{user.displayName}</span>
+                    <span className="text-muted-foreground ml-2">({user.email})</span>
+                  </div>
+                ))}
+              </div>
+          </ScrollArea>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowConfirmation(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
