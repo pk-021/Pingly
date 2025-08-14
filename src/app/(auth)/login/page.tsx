@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
-import { createUserProfile } from '@/lib/data-service';
+import { createUserProfile, getUserProfile } from '@/lib/data-service';
 import { Separator } from '@/components/ui/separator';
 
 export default function LoginPage() {
@@ -22,19 +22,25 @@ export default function LoginPage() {
 
   const handleAuthSuccess = async (user: User, name?: string) => {
     try {
-      // For sign up, the name is provided from the form.
-      // For Google sign in, the name comes from the Google profile.
-      const finalName = name || user.displayName;
+      // Check if a profile already exists.
+      const existingProfile = await getUserProfile(user.uid);
 
-      if (!user.displayName && finalName) {
-        await updateProfile(user, { displayName: finalName });
+      if (!existingProfile) {
+          // For sign up, the name is provided from the form.
+          // For Google sign in, the name comes from the Google profile.
+          const finalName = name || user.displayName;
+
+          if (!user.displayName && finalName) {
+            await updateProfile(user, { displayName: finalName });
+          }
+
+          // Create the profile since it doesn't exist
+          await createUserProfile({
+              uid: user.uid,
+              email: user.email,
+              displayName: finalName
+          });
       }
-
-      await createUserProfile({
-          uid: user.uid,
-          email: user.email,
-          displayName: finalName
-      });
       
       router.replace('/dashboard');
     } catch (e: any) {

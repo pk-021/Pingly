@@ -85,6 +85,7 @@ export async function createUserProfile(user: { uid: string, email: string | nul
 }
 
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+    if (!uid) return null;
     const userRef = doc(db, "users", uid);
     const docSnap = await getDoc(userRef);
     if (docSnap.exists()) {
@@ -360,4 +361,3 @@ export async function addAnnouncement(announcement: Omit<Announcement, 'id' | 'a
         createdAt: newAnnouncementData.createdAt.toDate(),
     } as Announcement;
 }
-
