@@ -4,8 +4,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { getTasks, updateTask, addTask, deleteTask, getClassRoutine } from "@/lib/data-service";
 import type { Task, CalendarEvent } from "@/lib/types";
-import { formatDistanceToNow, format, isToday, isPast, endOfDay, isAfter, startOfDay } from 'date-fns';
-import { ListTodo, CheckCircle2, Circle, ChevronUp, ChevronDown, Equal, PlusCircle, Clock, AlertCircle } from "lucide-react";
+import { formatDistanceToNow, format, isToday, isPast, endOfDay } from 'date-fns';
+import { ListTodo, ChevronUp, ChevronDown, Equal, PlusCircle, Clock } from "lucide-react";
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { cn } from '@/lib/utils';
@@ -22,16 +22,34 @@ const priorityIcons = {
 };
 
 const getTaskStatus = (task: Task) => {
-    if (task.completed) {
-        return { text: 'Completed', color: '' };
-    }
-    if (isPast(endOfDay(task.dueDate))) {
-        return { text: 'Late', color: 'text-red-500' };
-    }
-    if (isToday(task.dueDate)) {
-        return { text: 'Due today', color: '' };
-    }
+    if (task.completed) return { text: 'Completed', color: '' };
+    if (isPast(endOfDay(task.dueDate))) return { text: 'Late', color: 'text-red-500' };
+    if (isToday(task.dueDate)) return { text: 'Due today', color: '' };
     return { text: `Due ${formatDistanceToNow(task.dueDate, { addSuffix: true })}`, color: '' };
+};
+
+const TaskItem = ({ task, onClick }: { task: Task; onClick: (task: Task) => void }) => {
+    const status = getTaskStatus(task);
+    return (
+        <div onClick={() => onClick(task)} className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer">
+            <div className="flex-1">
+                <p className={cn("font-medium", task.completed && "line-through text-muted-foreground")}>{task.title}</p>
+                <div className={cn("text-sm text-muted-foreground", status.color)}>
+                    <span>{status.text}</span>
+                    {task.startTime && (
+                        <span className='ml-2 inline-flex items-center gap-1'>
+                            <Clock className="w-3 h-3"/>
+                            {format(task.startTime, 'p')}
+                        </span>
+                    )}
+                </div>
+            </div>
+            <div className="flex items-center gap-2">
+                {priorityIcons[task.priority]}
+                <Badge variant={task.priority === 'High' ? 'destructive' : task.priority === 'Medium' ? 'secondary' : 'outline'}>{task.priority}</Badge>
+            </div>
+        </div>
+    );
 };
 
 export default function UpcomingTasksCard() {
@@ -64,10 +82,10 @@ export default function UpcomingTasksCard() {
         try {
           if ('id' in task && task.id) {
             await updateTask(task as Task);
-            toast({ title: "Task Updated", description: "Your task has been successfully updated." });
+            toast({ title: "Task Updated"});
           } else {
             await addTask(task as Omit<Task, 'id' | 'creatorId' | 'completed'>);
-            toast({ title: "Task Added", description: "Your new task has been successfully added." });
+            toast({ title: "Task Added"});
           }
           loadData();
           handleTaskDialogClose();
@@ -79,7 +97,7 @@ export default function UpcomingTasksCard() {
       const handleTaskDelete = async (taskId: string) => {
         try {
             await deleteTask(taskId);
-            toast({ title: "Task Deleted", description: "The task has been removed." });
+            toast({ title: "Task Deleted" });
             loadData();
             handleTaskDialogClose();
         } catch (error) {
@@ -98,7 +116,6 @@ export default function UpcomingTasksCard() {
     }
 
     const filteredTasks = useMemo(() => {
-        const today = new Date();
         if (filter === 'all') return tasks;
         if (filter === 'completed') return tasks.filter(task => task.completed);
         return tasks.filter(task => !task.completed);
@@ -144,30 +161,9 @@ export default function UpcomingTasksCard() {
                     ) : filteredTasks.length > 0 ? (
                         <ScrollArea className="flex-1 -mr-4">
                             <div className="space-y-3 pr-4">
-                                {filteredTasks.map(task => {
-                                    const status = getTaskStatus(task);
-                                    return (
-                                    <div key={task.id} onClick={() => handleTaskClick(task)} className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-secondary/50 transition-colors cursor-pointer">
-                                        <div className="flex-1">
-                                            <p className={cn("font-medium", task.completed && "line-through text-muted-foreground")}>{task.title}</p>
-                                            <div className={cn("text-sm text-muted-foreground", status.color)}>
-                                                <span>
-                                                    {status.text}
-                                                </span>
-                                                {task.startTime && task.endTime && (
-                                                    <span className='ml-2 inline-flex items-center gap-1'>
-                                                        <Clock className="w-3 h-3"/>
-                                                        {format(task.startTime, 'p')}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {priorityIcons[task.priority]}
-                                            <Badge variant={task.priority === 'High' ? 'destructive' : task.priority === 'Medium' ? 'secondary' : 'outline'}>{task.priority}</Badge>
-                                        </div>
-                                    </div>
-                                )})}
+                                {filteredTasks.map(task => (
+                                    <TaskItem key={task.id} task={task} onClick={handleTaskClick} />
+                                ))}
                             </div>
                         </ScrollArea>
                     ) : (
