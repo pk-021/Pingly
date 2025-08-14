@@ -111,7 +111,7 @@ export function AppSidebarContent() {
       <SidebarMenu className="flex-1 p-2">
         {navItems.map((item) => (
           <SidebarMenuItem key={item.href}>
-            <Link href={item.href} legacyBehavior passHref>
+            <Link href={item.href}>
               <SidebarMenuButton
                 isActive={pathname === item.href}
                 tooltip={{ children: item.label }}
@@ -134,7 +134,7 @@ export function AppSidebarContent() {
                 </SidebarMenuItem>
                 {adminNavItems.map((item) => (
                     <SidebarMenuItem key={item.href}>
-                        <Link href={item.href} legacyBehavior passHref>
+                        <Link href={item.href}>
                             <SidebarMenuButton
                                 isActive={pathname.startsWith(item.href)}
                                 tooltip={{ children: item.label }}
@@ -175,7 +175,7 @@ export function AppSidebarContent() {
             <DropdownMenuContent className="w-[var(--sidebar-width)] mb-2" side="top" align="start">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <Link href="/settings" legacyBehavior passHref>
+              <Link href="/settings">
                 <DropdownMenuItem className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
