@@ -120,7 +120,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 }
 
 
-export async function updateUserRole(userId: string, newRole: string): Promise<void> {
+export async function updateUserRole(userId: string, newRole: UserProfile['role']): Promise<void> {
     const userRef = doc(db, "users", userId);
     try {
         await updateDoc(userRef, {
@@ -319,7 +319,10 @@ export async function getAnnouncements(): Promise<Announcement[]> {
         if (!user) return [];
 
         const userProfile = await getUserProfile(user.uid);
-        if (!userProfile) return [];
+        // If the user has no profile or no role, they can't receive announcements.
+        if (!userProfile || !userProfile.role) {
+            return [];
+        }
 
         const announcementsRef = collection(db, "announcements");
         // Query for announcements where the user's role is in the targetRoles array
