@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, User, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, User, signInWithPopup, GoogleAuthProvider, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -99,11 +99,8 @@ export default function LoginPage() {
     setError(null);
     
     try {
+      await setPersistence(auth, browserLocalPersistence);
       const provider = new GoogleAuthProvider();
-      // Optional: Add scopes if needed
-      // provider.addScope('profile');
-      // provider.addScope('email');
-      
       const result = await signInWithPopup(auth, provider);
       await handleAuthSuccess(result.user);
     } catch (error: any) {
