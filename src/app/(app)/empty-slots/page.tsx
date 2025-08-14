@@ -20,6 +20,30 @@ type TimeSlot = {
   end: Date;
 };
 
+// Function to merge contiguous slots
+const mergeTimeSlots = (slots: TimeSlot[]): TimeSlot[] => {
+    if (slots.length === 0) return [];
+  
+    const sortedSlots = slots.sort((a, b) => a.start.getTime() - b.start.getTime());
+    const merged: TimeSlot[] = [];
+    let currentSlot = { ...sortedSlots[0] };
+  
+    for (let i = 1; i < sortedSlots.length; i++) {
+      if (sortedSlots[i].start.getTime() === currentSlot.end.getTime()) {
+        // This slot is contiguous, extend the current slot
+        currentSlot.end = sortedSlots[i].end;
+      } else {
+        // This slot is not contiguous, push the current merged slot and start a new one
+        merged.push(currentSlot);
+        currentSlot = { ...sortedSlots[i] };
+      }
+    }
+    // Add the last processed slot
+    merged.push(currentSlot);
+  
+    return merged;
+};
+
 export default function EmptySlotsPage() {
   const [routine, setRoutine] = useState<CalendarEvent[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -64,21 +88,29 @@ export default function EmptySlotsPage() {
         }))
       ].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
       
-      const emptySlots: TimeSlot[] = [];
+      const individualSlots: TimeSlot[] = [];
       let lastEventEndTime = startOfWorkDay;
 
       allItemsForDay.forEach(item => {
         if (item.startTime > lastEventEndTime) {
-          emptySlots.push({ start: lastEventEndTime, end: item.startTime });
+            let currentTime = lastEventEndTime;
+            while(currentTime < item.startTime) {
+                individualSlots.push({ start: currentTime, end: new Date(currentTime.getTime() + slotDuration * 60000) });
+                currentTime = new Date(currentTime.getTime() + slotDuration * 60000);
+            }
         }
         lastEventEndTime = item.endTime > lastEventEndTime ? item.endTime : lastEventEndTime;
       });
 
       if (endOfWorkDay > lastEventEndTime) {
-        emptySlots.push({ start: lastEventEndTime, end: endOfWorkDay });
+        let currentTime = lastEventEndTime;
+        while(currentTime < endOfWorkDay) {
+            individualSlots.push({ start: currentTime, end: new Date(currentTime.getTime() + slotDuration * 60000) });
+            currentTime = new Date(currentTime.getTime() + slotDuration * 60000);
+        }
       }
 
-      slotsByDay[dayOfWeek] = emptySlots;
+      slotsByDay[dayOfWeek] = mergeTimeSlots(individualSlots);
     });
 
     return slotsByDay;

@@ -88,7 +88,36 @@ type TaskDialogProps = {
 const workingHours = { start: 9, end: 17 }; // 9 AM to 5 PM
 const slotDuration = 30; // in minutes
 
-function getAvailableSlots(date: Date, allItems: (Task | CalendarEvent)[], currentTaskId?: string) {
+type TimeSlot = {
+    start: Date;
+    end: Date;
+};
+
+// Function to merge contiguous slots
+const mergeTimeSlots = (slots: TimeSlot[]): TimeSlot[] => {
+    if (slots.length === 0) return [];
+  
+    const sortedSlots = slots.sort((a, b) => a.start.getTime() - b.start.getTime());
+    const merged: TimeSlot[] = [];
+    let currentSlot = { ...sortedSlots[0] };
+  
+    for (let i = 1; i < sortedSlots.length; i++) {
+      if (sortedSlots[i].start.getTime() === currentSlot.end.getTime()) {
+        // This slot is contiguous, extend the current slot
+        currentSlot.end = sortedSlots[i].end;
+      } else {
+        // This slot is not contiguous, push the current merged slot and start a new one
+        merged.push(currentSlot);
+        currentSlot = { ...sortedSlots[i] };
+      }
+    }
+    // Add the last processed slot
+    merged.push(currentSlot);
+  
+    return merged;
+};
+
+function getAvailableSlots(date: Date, allItems: (Task | CalendarEvent)[], currentTaskId?: string): TimeSlot[] {
     const startOfWorkDay = setMinutes(setHours(startOfDay(date), workingHours.start), 0);
     const endOfWorkDay = setMinutes(setHours(startOfDay(date), workingHours.end), 0);
     
@@ -104,7 +133,7 @@ function getAvailableSlots(date: Date, allItems: (Task | CalendarEvent)[], curre
             return false;
         });
 
-    const slots = [];
+    const slots: TimeSlot[] = [];
     let currentTime = startOfWorkDay;
 
     while (currentTime < endOfWorkDay) {
@@ -166,12 +195,14 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
 
   const availableSlots = useMemo(() => {
     if (!watchedDueDate) return [];
-    return getAvailableSlots(watchedDueDate, allItems, task?.id);
-  }, [watchedDueDate, allItems, task?.id])
+    const individualSlots = getAvailableSlots(watchedDueDate, allItems, task?.id);
+    return mergeTimeSlots(individualSlots);
+  }, [watchedDueDate, allItems, task?.id]);
 
   const availableStartSlots = useMemo(() => {
-      return availableSlots.map(s => s.start);
-  }, [availableSlots]);
+    if (!watchedDueDate) return [];
+    return getAvailableSlots(watchedDueDate, allItems, task?.id).map(s => s.start);
+  }, [watchedDueDate, allItems, task?.id])
 
   const availableEndSlots = useMemo(() => {
       if (!watchedStartTime || !watchedDueDate) return [];
@@ -197,13 +228,15 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
           [0];
 
       const endBoundary = nextConflict || setMinutes(setHours(startOfDay(watchedDueDate), workingHours.end), 0);
+      
+      const allPossibleSlots = getAvailableSlots(watchedDueDate, allItems, task?.id);
 
       // Filter slots that are after the start time but not after the next conflict
-      return availableSlots
+      return allPossibleSlots
           .map(s => s.end)
           .filter(slotEnd => slotEnd > startTimeDate && slotEnd <= endBoundary);
 
-  }, [watchedStartTime, watchedDueDate, allItems, task?.id, availableSlots]);
+  }, [watchedStartTime, watchedDueDate, allItems, task?.id]);
 
 
   useEffect(() => {
@@ -452,10 +485,10 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                                     <AlertTitle>Free Slots for {format(watchedDueDate, 'MMMM d')}</AlertTitle>
                                     <AlertDescription>
                                         <ScrollArea className="h-24 mt-2">
-                                            <div className="grid grid-cols-3 gap-2">
+                                            <div className="space-y-2">
                                                 {availableSlots.map((slot, index) => (
-                                                    <Badge variant="outline" key={index} className="justify-center font-mono">
-                                                        {format(slot.start, 'p')}
+                                                    <Badge variant="outline" key={index} className="justify-center font-mono w-full py-1">
+                                                        {format(slot.start, 'p')} - {format(slot.end, 'p')}
                                                     </Badge>
                                                 ))}
                                             </div>
@@ -645,5 +678,3 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
     </Dialog>
   );
 }
-
-    
