@@ -44,6 +44,7 @@ import { auth } from '@/lib/firebase';
 import { ScrollArea } from './ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Badge } from './ui/badge';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
