@@ -40,7 +40,8 @@ export type UserProfile = {
     displayName: string;
     department?: string;
     createdAt: Date;
-    isAdmin?: boolean;
+    role: 'HoD' | 'dHoD' | 'MSc Coordinator' | 'Lecturer' | 'Non-Teaching Staff';
+    isAdmin: boolean;
 }
 
 export type Announcement = {

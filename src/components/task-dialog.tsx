@@ -39,7 +39,7 @@ import { cn } from '@/lib/utils';
 import { format, addHours, startOfDay, setHours, setMinutes, getHours, getMinutes, isSameDay, getDay } from 'date-fns';
 import { CalendarIcon, Trash2, Pencil, Clock } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
-import { getUsers } from '@/lib/data-service';
+import { getAllUsers } from '@/lib/data-service';
 import { auth } from '@/lib/firebase';
 
 const taskSchema = z.object({
@@ -130,7 +130,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
 
   useEffect(() => {
     async function fetchUsers() {
-        const fetchedUsers = await getUsers();
+        const fetchedUsers = await getAllUsers();
         setUsers(fetchedUsers);
     }
     if (isOpen) {
@@ -343,7 +343,9 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                              mode="single"
                              selected={field.value}
                              onSelect={(date) => {
-                                field.onChange(date);
+                                if (date) {
+                                    field.onChange(date);
+                                }
                                 form.setValue('startTime', '');
                                 form.setValue('endTime', '');
                              }}

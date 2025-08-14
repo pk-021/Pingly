@@ -62,7 +62,7 @@ export async function createUserProfile(user: { uid: string, email: string | nul
             return;
         }
         
-        const newUserProfile: Omit<UserProfile, 'id' | 'createdAt' | 'isAdmin'> = {
+        const newUserProfile: Omit<UserProfile, 'id' | 'createdAt' | 'isAdmin' | 'role'> = {
             email: user.email || "",
             displayName: user.displayName || "New User",
             department: "",
@@ -74,6 +74,7 @@ export async function createUserProfile(user: { uid: string, email: string | nul
             ...newUserProfile,
             createdAt: Timestamp.fromDate(new Date()),
             isAdmin: false,
+            role: 'Lecturer', // Default role
         });
         console.log(`Successfully created profile for user ${user.uid}.`);
 
@@ -97,10 +98,10 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     return null;
 }
 
-export async function getUsers(): Promise<UserProfile[]> {
+export async function getAllUsers(): Promise<UserProfile[]> {
+    const usersCollection = collection(db, "users");
     try {
-        const usersRef = collection(db, "users");
-        const querySnapshot = await getDocs(usersRef);
+        const querySnapshot = await getDocs(usersCollection);
         const users: UserProfile[] = [];
         querySnapshot.forEach((doc) => {
             const data = doc.data();
@@ -112,11 +113,37 @@ export async function getUsers(): Promise<UserProfile[]> {
         });
         return users;
     } catch (error) {
-        console.error("Error getting users: ", error);
+        console.error("Error getting all users: ", error);
         return [];
     }
 }
 
+
+export async function updateUserRole(userId: string, newRole: string): Promise<void> {
+    const userRef = doc(db, "users", userId);
+    try {
+        await updateDoc(userRef, {
+            role: newRole
+        });
+        console.log(`Successfully updated role for user ${userId} to ${newRole}.`);
+    } catch (error) {
+        console.error("Error updating user role: ", error);
+        throw new Error("Failed to update user role in database.");
+    }
+}
+
+export async function updateUserIsAdmin(userId: string, isAdmin: boolean): Promise<void> {
+    const userRef = doc(db, "users", userId);
+    try {
+        await updateDoc(userRef, {
+            isAdmin: isAdmin
+        });
+        console.log(`Successfully updated admin status for user ${userId} to ${isAdmin}.`);
+    } catch (error: any) {
+        console.error("Error updating user admin status: ", error);
+        throw new Error("Failed to update user admin status in database.");
+    }
+}
 
 // --- Task Management ---
 export async function getTasks(): Promise<Task[]> {
@@ -145,6 +172,25 @@ export async function getTasks(): Promise<Task[]> {
         console.error("Error getting tasks: ", error);
         return [];
     }
+}
+
+export async function createAnnouncement(announcement: { title: string; content: string; targetRoles: string[] }): Promise<Announcement> {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not authenticated");
+
+    const newAnnouncementData = {
+        title: announcement.title,
+        content: announcement.content,
+        targetRoles: announcement.targetRoles, // Include target roles
+        authorId: user.uid,
+        authorName: user.displayName || 'Admin',
+        createdAt: Timestamp.fromDate(new Date()),
+    };
+
+    const docRef = await addDoc(collection(db, "announcements"), newAnnouncementData);
+
+    // Return the created announcement with its generated ID
+    return { id: docRef.id, ...newAnnouncementData, createdAt: newAnnouncementData.createdAt.toDate() } as Announcement;
 }
 
 export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>): Promise<Task> {
@@ -302,6 +348,7 @@ export async function addAnnouncement(announcement: Omit<Announcement, 'id' | 'a
     
     return {
         id: docRef.id,
-        ...newAnnouncementData
+        ...newAnnouncementData,
+        createdAt: newAnnouncementData.createdAt.toDate(),
     } as Announcement;
 }
