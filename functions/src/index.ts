@@ -14,7 +14,7 @@ import * as logger from 'firebase-functions/logger';
 
 // Import necessary modules for the announcement email function
 import * as admin from 'firebase-admin';
-import sgMail from '@sendgrid/mail';
+import * as sgMail from '@sendgrid/mail';
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
