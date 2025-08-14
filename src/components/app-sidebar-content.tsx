@@ -19,6 +19,7 @@ import {
   Megaphone,
   Shield,
   Users,
+  Clock,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -44,6 +45,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/class-routine', label: 'Class Routine', icon: BookOpen },
+  { href: '/empty-slots', label: 'Empty Slots', icon: Clock },
 ];
 
 const adminNavItems = [
