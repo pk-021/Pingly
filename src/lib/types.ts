@@ -22,9 +22,10 @@ export type Task = {
   completionNotes?: string;
   roomNumber?: string;
   creatorId: string;
-  assigneeId?: string;
+  assigneeId?: string | null;
   category?: string;
   isRecurring?: boolean;
+  createdAt: Date;
 };
 
 export type DisplayItem = CalendarEvent | Task;
@@ -53,4 +54,6 @@ export type Announcement = {
     createdAt: Date;
     targetRoles: string[];
 }
+    
+
     

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type { CalendarEvent, Task, UserProfile, Announcement } from './types';
@@ -31,6 +32,7 @@ function taskFromDoc(doc: any): Task {
         dueDate: (data.dueDate as Timestamp)?.toDate(),
         startTime: (data.startTime as Timestamp)?.toDate(),
         endTime: (data.endTime as Timestamp)?.toDate(),
+        createdAt: (data.createdAt as Timestamp)?.toDate(),
     };
 }
 
@@ -204,11 +206,15 @@ export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>
         ...rest,
         creatorId: user.uid,
         completed: false,
+        createdAt: Timestamp.fromDate(new Date()),
     };
     
     if (dueDate) newTaskData.dueDate = Timestamp.fromDate(dueDate);
     if (startTime) newTaskData.startTime = Timestamp.fromDate(startTime);
     if (endTime) newTaskData.endTime = Timestamp.fromDate(endTime);
+    if (!task.assigneeId) {
+        newTaskData.assigneeId = null;
+    }
 
 
     const docRef = await addDoc(collection(db, "tasks"), newTaskData);
@@ -218,12 +224,13 @@ export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>
         ...task,
         creatorId: user.uid,
         completed: false,
+        createdAt: newTaskData.createdAt.toDate(),
     };
 }
 
 export async function updateTask(updatedTask: Task): Promise<Task> {
     const taskRef = doc(db, "tasks", updatedTask.id);
-    const { id, dueDate, startTime, endTime, ...taskData } = updatedTask;
+    const { id, dueDate, startTime, endTime, createdAt, ...taskData } = updatedTask;
 
     const dataToUpdate: any = { ...taskData };
     
@@ -364,3 +371,5 @@ export async function addAnnouncement(announcement: Omit<Announcement, 'id' | 'a
         createdAt: newAnnouncementData.createdAt.toDate(),
     } as Announcement;
 }
+
+    
