@@ -156,16 +156,48 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
   });
 
   const watchedDueDate = useWatch({ control: form.control, name: 'dueDate' });
+  const watchedStartTime = useWatch({ control: form.control, name: 'startTime' });
 
-  const availableSlots = useMemo(() => {
-    if (!watchedDueDate) return { startSlots: [], endSlots: [] };
-    const allItems = [...routine, ...tasks];
-    const slots = getAvailableSlots(watchedDueDate, allItems, task?.id);
-    return {
-        startSlots: slots.map(s => s.start),
-        endSlots: slots.map(s => s.end),
-    };
-  }, [watchedDueDate, routine, tasks, task?.id]);
+  const allItems = useMemo(() => [...routine, ...tasks], [routine, tasks]);
+
+  const availableStartSlots = useMemo(() => {
+      if (!watchedDueDate) return [];
+      return getAvailableSlots(watchedDueDate, allItems, task?.id).map(s => s.start);
+  }, [watchedDueDate, allItems, task?.id]);
+
+  const availableEndSlots = useMemo(() => {
+      if (!watchedStartTime || !watchedDueDate) return [];
+      
+      const [startHour, startMinute] = watchedStartTime.split(':').map(Number);
+      const startTimeDate = setMinutes(setHours(watchedDueDate, startHour), startMinute);
+
+      const allPossibleSlots = getAvailableSlots(watchedDueDate, allItems, task?.id);
+      
+      // Find the next event that starts after our chosen start time
+      const nextConflict = allItems
+          .filter(item => item.id !== task?.id)
+          .map(item => {
+              if ('dayOfWeek' in item && item.dayOfWeek === getDay(watchedDueDate)) {
+                  return setMinutes(setHours(watchedDueDate, getHours(item.startTime)), getMinutes(item.startTime));
+              }
+              if ('dueDate' in item && isSameDay(item.dueDate, watchedDueDate) && item.startTime) {
+                  return item.startTime;
+              }
+              return null;
+          })
+          .filter(date => date && date > startTimeDate)
+          .sort((a, b) => a!.getTime() - b!.getTime())
+          [0];
+
+      const endBoundary = nextConflict || setMinutes(setHours(startOfDay(watchedDueDate), workingHours.end), 0);
+
+      // Filter slots that are after the start time but not after the next conflict
+      return allPossibleSlots
+          .map(s => s.end)
+          .filter(slotEnd => slotEnd > startTimeDate && slotEnd <= endBoundary);
+
+  }, [watchedStartTime, watchedDueDate, allItems, task?.id]);
+
 
   useEffect(() => {
     if (isOpen) {
@@ -393,7 +425,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                             <Clock className="mr-2 h-4 w-4" />
                             Schedule Time (Optional)
                         </h4>
-                        {availableSlots.startSlots.length > 0 ? (
+                        {availableStartSlots.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField
                                 control={form.control}
@@ -401,14 +433,20 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Start Time</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
+                                    <Select 
+                                        onValueChange={(value) => {
+                                            field.onChange(value);
+                                            form.setValue('endTime', '');
+                                        }} 
+                                        value={field.value}
+                                    >
                                     <FormControl>
                                         <SelectTrigger>
                                         <SelectValue placeholder="Select a start time" />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {availableSlots.startSlots.map(slot => (
+                                        {availableStartSlots.map(slot => (
                                             <SelectItem key={slot.toISOString()} value={format(slot, 'HH:mm')}>
                                                 {format(slot, 'p')}
                                             </SelectItem>
@@ -432,16 +470,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {availableSlots.endSlots
-                                            .filter(slot => {
-                                                const startTime = form.getValues('startTime');
-                                                if (!startTime) return true;
-                                                const [startHour, startMinute] = startTime.split(':').map(Number);
-                                                const slotHour = getHours(slot);
-                                                const slotMinute = getMinutes(slot);
-                                                return slotHour > startHour || (slotHour === startHour && slotMinute > startMinute);
-                                            })
-                                            .map(slot => (
+                                        {availableEndSlots.map(slot => (
                                             <SelectItem key={slot.toISOString()} value={format(slot, 'HH:mm')}>
                                                 {format(slot, 'p')}
                                             </SelectItem>
