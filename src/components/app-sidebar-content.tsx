@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import {
@@ -8,7 +7,8 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-  SidebarTrigger
+  SidebarTrigger,
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
   LayoutDashboard,
@@ -17,6 +17,8 @@ import {
   BookOpen,
   LogOut,
   Megaphone,
+  Shield,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -45,7 +47,8 @@ const navItems = [
 ];
 
 const adminNavItems = [
-    { href: '/announcements', label: 'Announcements', icon: Megaphone },
+    { href: '/admin/users', label: 'User Management', icon: Users },
+    { href: '/admin/announcements', label: 'Announcements', icon: Megaphone },
 ];
 
 export function AppSidebarContent() {
@@ -106,7 +109,7 @@ export function AppSidebarContent() {
       <SidebarMenu className="flex-1 p-2">
         {navItems.map((item) => (
           <SidebarMenuItem key={item.href}>
-            <Link href={item.href}>
+            <Link href={item.href} legacyBehavior passHref>
               <SidebarMenuButton
                 isActive={pathname === item.href}
                 tooltip={{ children: item.label }}
@@ -117,19 +120,31 @@ export function AppSidebarContent() {
             </Link>
           </SidebarMenuItem>
         ))}
-        {userProfile?.isAdmin && adminNavItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
-                <Link href={item.href}>
-                    <SidebarMenuButton
-                        isActive={pathname === item.href}
-                        tooltip={{ children: item.label }}
-                    >
-                        <item.icon />
-                        <span>{item.label}</span>
-                    </SidebarMenuButton>
-                </Link>
-            </SidebarMenuItem>
-        ))}
+        
+        {userProfile?.isAdmin && (
+            <>
+                <SidebarSeparator className="my-2" />
+                <SidebarMenuItem>
+                     <div className="px-2 py-1 text-xs font-semibold text-muted-foreground flex items-center gap-2">
+                        <Shield />
+                        <span>Admin</span>
+                    </div>
+                </SidebarMenuItem>
+                {adminNavItems.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                        <Link href={item.href} legacyBehavior passHref>
+                            <SidebarMenuButton
+                                isActive={pathname.startsWith(item.href)}
+                                tooltip={{ children: item.label }}
+                            >
+                                <item.icon />
+                                <span>{item.label}</span>
+                            </SidebarMenuButton>
+                        </Link>
+                    </SidebarMenuItem>
+                ))}
+            </>
+        )}
       </SidebarMenu>
 
       <SidebarFooter className='p-2'>
@@ -158,7 +173,7 @@ export function AppSidebarContent() {
             <DropdownMenuContent className="w-[var(--sidebar-width)] mb-2" side="top" align="start">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <Link href="/settings">
+              <Link href="/settings" legacyBehavior passHref>
                 <DropdownMenuItem className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
