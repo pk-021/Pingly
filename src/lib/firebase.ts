@@ -7,14 +7,16 @@ import { getFirestore, type Firestore } from "firebase/firestore";
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-    apiKey: "AIzaSyA9XCsWRDMYKi4jVakH2ZwwCh5XQZ6AiEs",
-    authDomain: "pingly-web-bu4og.firebaseapp.com",
-    projectId: "pingly-web-bu4og",
-    storageBucket: "pingly-web-bu4og.appspot.com",
-    messagingSenderId: "1062973792496",
-    appId: "1:1062973792496:web:2f0e35320853724a955747",
-  };
+  apiKey: "AIzaSyACiqz7i27Yu0h1A2yoFx6BOsrWqYeD4XI",
+  authDomain: "pingly0.firebaseapp.com",
+  projectId: "pingly0",
+  storageBucket: "pingly0.firebasestorage.app",
+  messagingSenderId: "898991883909",
+  appId: "1:898991883909:web:9bfe8775f4cbc440ab4bec",
+  measurementId: "G-38HQ6H5QCB"
+};
 // Initialize Firebase for client-side
 let app: FirebaseApp;
 let auth: Auth;
