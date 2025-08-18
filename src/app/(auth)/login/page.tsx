@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { createUserProfile, getUserProfile } from '@/lib/data-service';
 import { Separator } from '@/components/ui/separator';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -241,9 +242,9 @@ export default function LoginPage() {
           <div className="flex items-center">
             <Label htmlFor="password">Password</Label>
             {!isSignUp && (
-                 <a href="#" className="ml-auto inline-block text-sm underline">
+                 <Link href="/forgot-password" className="ml-auto inline-block text-sm underline">
                     Forgot your password?
-                 </a>
+                 </Link>
             )}
           </div>
           <Input
