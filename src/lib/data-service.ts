@@ -19,7 +19,6 @@ import {
     or
 } from 'firebase/firestore';
 import { getFirebaseApp } from './firebase';
-import sgMail from '@sendgrid/mail';
 
 const { auth, db } = getFirebaseApp();
 
@@ -189,6 +188,39 @@ export async function completeOnboarding(userId: string, department: string, rou
     await batch.commit();
 }
 
+async function sendTaskAssignmentEmail(assignee: UserProfile, task: Task, assigner: UserProfile) {
+    if (!assignee.email) {
+      console.error("Assignee does not have an email address.");
+      return;
+    }
+  
+    const mailCollection = collection(db, 'mail');
+    await addDoc(mailCollection, {
+      to: assignee.email,
+      message: {
+        subject: `New Task Assigned in Pingly: ${task.title}`,
+        html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                    <h2 style="color: #6699CC; border-bottom: 2px solid #6699CC; padding-bottom: 10px;">New Task Assignment</h2>
+                    <p>Hello <strong>${assignee.displayName}</strong>,</p>
+                    <p>You have been assigned a new task by <strong>${assigner.displayName}</strong>.</p>
+                    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <h3 style="margin-top: 0; color: #6699CC;">Task Details:</h3>
+                        <p><strong>Title:</strong> ${task.title}</p>
+                        <p><strong>Due Date:</strong> ${task.dueDate.toLocaleDateString()}</p>
+                        ${task.description ? `<p><strong>Description:</strong> ${task.description}</p>` : ''}
+                        ${task.priority ? `<p><strong>Priority:</strong> ${task.priority}</p>` : ''}
+                    </div>
+                    <p>Please log in to Pingly to view and manage your tasks.</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                    <p style="font-size: 0.9em; color: #777;">Thank you,<br/>The Pingly Team</p>
+                </div>
+            </div>
+        `,
+      },
+    });
+  }
 
 // --- Task Management ---
 export async function getTasks(): Promise<Task[]> {
@@ -237,64 +269,6 @@ export async function createAnnouncement(announcement: { title: string; content:
     // Return the created announcement with its generated ID
     return { id: docRef.id, ...newAnnouncementData, createdAt: newAnnouncementData.createdAt.toDate() } as Announcement;
 }
-
-// Function to send an email via SendGrid from the client-side.
-// WARNING: This is insecure and not recommended for production.
-// API keys should be handled by a backend service.
-async function sendTaskAssignmentEmail(assignee: UserProfile, task: Task, assigner: UserProfile) {
-    if (!assignee.email) {
-        console.error("Assignee does not have an email address.");
-        return;
-    }
-
-    const apiKey = process.env.SENDGRID_API_KEY;
-
-    if (!apiKey) {
-        console.error("SendGrid API key is not configured. Cannot send email.");
-        alert("Email sending is not configured. Please contact an administrator.");
-        return;
-    }
-    
-    sgMail.setApiKey(apiKey);
-
-    const msg = {
-        to: assignee.email,
-        from: 'noreply@pingly.app', // You must verify this sender address in SendGrid
-        subject: `New Task Assigned in Pingly: ${task.title}`,
-        html: `
-            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-                    <h2 style="color: #6699CC; border-bottom: 2px solid #6699CC; padding-bottom: 10px;">New Task Assignment</h2>
-                    <p>Hello <strong>${assignee.displayName}</strong>,</p>
-                    <p>You have been assigned a new task by <strong>${assigner.displayName}</strong>.</p>
-                    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                        <h3 style="margin-top: 0; color: #6699CC;">Task Details:</h3>
-                        <p><strong>Title:</strong> ${task.title}</p>
-                        <p><strong>Due Date:</strong> ${task.dueDate.toLocaleDateString()}</p>
-                        ${task.description ? `<p><strong>Description:</strong> ${task.description}</p>` : ''}
-                        ${task.priority ? `<p><strong>Priority:</strong> ${task.priority}</p>` : ''}
-                    </div>
-                    <p>Please log in to Pingly to view and manage your tasks.</p>
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-                    <p style="font-size: 0.9em; color: #777;">Thank you,<br/>The Pingly Team</p>
-                </div>
-            </div>
-        `,
-    };
-
-    try {
-        // NOTE: This will fail in the browser due to CORS. This code must be run in a server environment.
-        await sgMail.send(msg);
-        console.log(`Email notification for task "${task.title}" sent to ${assignee.email}.`);
-    } catch (error) {
-        console.error('Error sending email with SendGrid', error);
-        if ((error as any).response) {
-            console.error((error as any).response.body)
-        }
-        alert('There was an error sending the notification email. The task has been assigned, but the user was not notified by email.');
-    }
-}
-
 
 export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>): Promise<Task> {
     const user = auth.currentUser;
