@@ -37,7 +37,7 @@ const routineEventSchema = z.object({
 
 // Allow skipping by making routine optional
 const onboardingSchema = z.object({
-  department: z.string().min(2, 'Department is required'),
+  department: z.string().min(1, 'Department is required'),
   routine: z.array(routineEventSchema).optional(),
 });
 
@@ -49,6 +49,14 @@ const weekDays = [
     { label: 'Wednesday', value: '3' },
     { label: 'Thursday', value: '4' },
     { label: 'Friday', value: '5' },
+];
+
+const departments = [
+    'Computer and electronics engineering',
+    'mechanical and aerospace engineering',
+    'applied sciences and chemical engineering',
+    'civil engineering',
+    'electrical engineering',
 ];
 
 const timeSlots = Array.from({ length: 24 * 2 }, (_, i) => {
@@ -179,9 +187,16 @@ export default function OnboardingPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-lg">Department</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Computer Science" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select your department" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {departments.map(dep => <SelectItem key={dep} value={dep}>{dep}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -270,8 +285,10 @@ export default function OnboardingPage() {
                         </div>
                     </Card>
                     ))}
+                </div>
+                <div>
                     <Button type="button" variant="outline" onClick={() => append({ title: '', dayOfWeek: '', startTime: '', endTime: '', roomNumber: '' })}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Class
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Class
                     </Button>
                     {form.formState.errors.routine && <p className="text-sm font-medium text-destructive">{form.formState.errors.routine.message}</p>}
                 </div>
@@ -289,3 +306,5 @@ export default function OnboardingPage() {
     </div>
   );
 }
+
+    
