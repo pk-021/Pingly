@@ -31,33 +31,37 @@ export default function CalendarPage() {
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
   const [showNepaliCalendar, setShowNepaliCalendar] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
     const setting = localStorage.getItem('nepali-calendar-enabled') === 'true';
     setShowNepaliCalendar(setting);
   }, []);
 
-  const loadData = async () => {
-    setIsLoading(true);
-    const promises = [getTasks(), getClassRoutine()];
-    if (showNepaliCalendar) {
-        promises.push(getNepaliHolidays());
-    }
-    const [fetchedTasks, fetchedClassRoutine, fetchedHolidays] = await Promise.all(promises);
-    
-    setTasks(fetchedTasks as Task[]);
-    setClassRoutine(fetchedClassRoutine as CalendarEvent[]);
-    if (fetchedHolidays) {
-        setNepaliHolidays(fetchedHolidays as NepaliHoliday[]);
-    } else {
-        setNepaliHolidays([]);
-    }
-    setIsLoading(false);
-  };
-
   useEffect(() => {
+    if (!isClient) return;
+
+    const loadData = async () => {
+      setIsLoading(true);
+      const promises: [Promise<Task[]>, Promise<CalendarEvent[]>, Promise<NepaliHoliday[]>?] = [getTasks(), getClassRoutine()];
+      if (showNepaliCalendar) {
+          promises.push(getNepaliHolidays());
+      }
+      const [fetchedTasks, fetchedClassRoutine, fetchedHolidays] = await Promise.all(promises);
+      
+      setTasks(fetchedTasks as Task[]);
+      setClassRoutine(fetchedClassRoutine as CalendarEvent[]);
+      if (fetchedHolidays) {
+          setNepaliHolidays(fetchedHolidays as NepaliHoliday[]);
+      } else {
+          setNepaliHolidays([]);
+      }
+      setIsLoading(false);
+    };
+
     loadData();
-  }, [showNepaliCalendar]);
+  }, [showNepaliCalendar, isClient]);
 
   const handleTaskDialogClose = () => {
     setIsTaskDialogOpen(false);
@@ -73,7 +77,9 @@ export default function CalendarPage() {
         await addTask(taskData as Omit<Task, 'id' | 'creatorId' | 'completed'>);
         toast({ title: "Task Added", description: "Your new task has been successfully added." });
       }
-      loadData();
+      if (isClient) {
+        loadData();
+      }
       handleTaskDialogClose();
     } catch (error) {
       toast({ variant: 'destructive', title: "Error", description: "Failed to save the task." });
@@ -84,11 +90,31 @@ export default function CalendarPage() {
     try {
         await deleteTask(taskId);
         toast({ title: "Task Deleted", description: "The task has been removed." });
-        loadData();
+        if (isClient) {
+          loadData();
+        }
         handleTaskDialogClose();
     } catch (error) {
         toast({ variant: 'destructive', title: "Error", description: "Failed to delete the task." });
     }
+  };
+  
+  const loadData = async () => {
+    setIsLoading(true);
+    const promises: [Promise<Task[]>, Promise<CalendarEvent[]>, Promise<NepaliHoliday[]>?] = [getTasks(), getClassRoutine()];
+    if (showNepaliCalendar) {
+        promises.push(getNepaliHolidays());
+    }
+    const [fetchedTasks, fetchedClassRoutine, fetchedHolidays] = await Promise.all(promises);
+    
+    setTasks(fetchedTasks as Task[]);
+    setClassRoutine(fetchedClassRoutine as CalendarEvent[]);
+    if (fetchedHolidays) {
+        setNepaliHolidays(fetchedHolidays as NepaliHoliday[]);
+    } else {
+        setNepaliHolidays([]);
+    }
+    setIsLoading(false);
   };
 
   const handleTaskClick = (task: Task) => {
@@ -101,6 +127,10 @@ export default function CalendarPage() {
     setIsTaskDialogOpen(true);
   }
   
+  if (!isClient) {
+    return null;
+  }
+
   return (
     <>
       <TaskDialog 
