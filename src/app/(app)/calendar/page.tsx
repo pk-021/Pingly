@@ -73,6 +73,7 @@ export default function CalendarPage() {
   }, [showNepaliCalendar, isClient]);
   
   const reloadAllData = async () => {
+    if (!isClient) return;
     setIsLoading(true);
     const [fetchedTasks, fetchedClassRoutine] = await Promise.all([getTasks(), getClassRoutine()]);
     setTasks(fetchedTasks);

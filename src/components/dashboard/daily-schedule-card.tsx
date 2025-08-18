@@ -37,6 +37,7 @@ export default function DailyScheduleCard() {
     }, [isClient]);
 
     const loadData = async () => {
+        if (!isClient) return;
         setIsLoading(true);
         const [fetchedTasks, fetchedClassRoutine] = await Promise.all([
             getTasks(), 
@@ -55,9 +56,7 @@ export default function DailyScheduleCard() {
     };
 
     useEffect(() => {
-        if (isClient) {
-            loadData();
-        }
+        loadData();
     }, [isClient, showNepaliCalendar]);
     
     const handleTaskDialogClose = () => {
@@ -145,7 +144,7 @@ export default function DailyScheduleCard() {
                     <CardDescription>Your class routine and scheduled tasks for today.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {isLoading ? (
+                    {!isClient || isLoading ? (
                         <div className="space-y-6">
                              <Skeleton className="h-24 w-full" />
                              <Skeleton className="h-24 w-full" />

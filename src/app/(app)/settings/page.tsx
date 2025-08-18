@@ -1,5 +1,4 @@
 
-
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -19,10 +18,10 @@ export default function SettingsPage() {
   }, []);
 
   const handleSwitchChange = (checked: boolean) => {
+    if (!isClient) return;
     setIsNepaliCalendarEnabled(checked);
     localStorage.setItem('nepali-calendar-enabled', String(checked));
-    // Instead of a full reload, we can notify other components if needed,
-    // but for now, a reload is simple and effective.
+    // A full reload ensures all components re-check the localStorage value.
     window.location.reload();
   };
 
