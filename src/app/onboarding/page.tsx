@@ -35,10 +35,12 @@ const routineEventSchema = z.object({
     path: ["endTime"],
 });
 
+// Allow skipping by making routine optional
 const onboardingSchema = z.object({
   department: z.string().min(2, 'Department is required'),
-  routine: z.array(routineEventSchema).min(1, 'Please add at least one routine event.'),
+  routine: z.array(routineEventSchema).optional(),
 });
+
 
 const weekDays = [
     { label: 'Sunday', value: '0' },
@@ -92,9 +94,19 @@ export default function OnboardingPage() {
 
   const onSubmit = async (values: z.infer<typeof onboardingSchema>) => {
     if (!user) return;
+    
+    // Add validation check for routine if user is not skipping
+    if (!values.routine || values.routine.length === 0) {
+        const department = form.getValues('department');
+        if (department) { // only show error if they started filling form
+             form.setError('routine', { type: 'manual', message: 'Please add at least one routine event or skip for now.' });
+             return;
+        }
+    }
+
     setIsSubmitting(true);
     try {
-      const routineEvents = values.routine.map(event => {
+      const routineEvents = (values.routine || []).map(event => {
         const today = startOfDay(new Date());
         const [startHour, startMinute] = event.startTime.split(':').map(Number);
         const [endHour, endMinute] = event.endTime.split(':').map(Number);
@@ -114,6 +126,18 @@ export default function OnboardingPage() {
       console.error('Onboarding failed:', error);
       // You could show a toast message here
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSkip = async () => {
+    if (!user) return;
+    setIsSubmitting(true);
+    try {
+        await completeOnboarding(user.uid, "", []); // Send empty data
+        router.replace('/dashboard');
+    } catch (error) {
+        console.error('Skipping failed:', error);
+        setIsSubmitting(false);
     }
   };
   
@@ -136,8 +160,15 @@ export default function OnboardingPage() {
     <div className="flex min-h-screen w-full items-center justify-center bg-background p-4 sm:p-6 lg:p-8">
       <Card className="w-full max-w-4xl">
         <CardHeader>
-          <CardTitle className="text-2xl font-headline">Welcome to Pingly!</CardTitle>
-          <CardDescription>Let's set up your profile. Please provide your department and weekly class routine.</CardDescription>
+            <div className="flex justify-between items-start">
+                <div>
+                    <CardTitle className="text-2xl font-headline">Welcome to Pingly!</CardTitle>
+                    <CardDescription>Let's set up your profile. Please provide your department and weekly class routine.</CardDescription>
+                </div>
+                 <Button variant="link" onClick={handleSkip} disabled={isSubmitting}>
+                    Skip for now
+                </Button>
+            </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -159,7 +190,10 @@ export default function OnboardingPage() {
               <div className="space-y-4">
                 <Label className="text-lg">Weekly Class Routine</Label>
                 {fields.map((field, index) => (
-                  <Card key={field.id} className="p-4 relative">
+                  <Card key={field.id} className="p-4 relative bg-muted/30">
+                    <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => remove(index)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                       <FormField
                         control={form.control}
@@ -231,15 +265,12 @@ export default function OnboardingPage() {
                         )}
                       />
                     </div>
-                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1" onClick={() => remove(index)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
                   </Card>
                 ))}
                 <Button type="button" variant="outline" onClick={() => append({ title: '', dayOfWeek: '', startTime: '', endTime: '', roomNumber: '' })}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Add Class
                 </Button>
-                <FormMessage>{form.formState.errors.routine?.message}</FormMessage>
+                {form.formState.errors.routine && <p className="text-sm font-medium text-destructive">{form.formState.errors.routine.message}</p>}
               </div>
 
               <div className="flex justify-end">
