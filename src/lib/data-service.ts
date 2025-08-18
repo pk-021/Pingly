@@ -188,12 +188,13 @@ export async function completeOnboarding(userId: string, department: string, rou
     await batch.commit();
 }
 
-async function sendTaskAssignmentEmail(assignee: UserProfile, task: Task, assigner: UserProfile) {
-    if (!assignee.email) {
-      console.error("Assignee does not have an email address.");
-      return;
-    }
-  
+async function sendTaskAssignmentNotification(assignee: UserProfile, task: Task, assigner: UserProfile) {
+  if (!assignee.email) {
+    console.error("Assignee does not have an email address. Cannot send notification.");
+    return;
+  }
+
+  try {
     const mailCollection = collection(db, 'mail');
     await addDoc(mailCollection, {
       to: assignee.email,
@@ -220,7 +221,11 @@ async function sendTaskAssignmentEmail(assignee: UserProfile, task: Task, assign
         `,
       },
     });
+    console.log(`Email document created for assignee: ${assignee.email}`);
+  } catch (error) {
+      console.error("Error creating email document in Firestore:", error);
   }
+}
 
 // --- Task Management ---
 export async function getTasks(): Promise<Task[]> {
@@ -308,7 +313,7 @@ export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>
         ]);
 
         if (assigneeProfile && assignerProfile) {
-            await sendTaskAssignmentEmail(assigneeProfile, finalTask, assignerProfile);
+            await sendTaskAssignmentNotification(assigneeProfile, finalTask, assignerProfile);
         }
     }
     
@@ -354,7 +359,7 @@ export async function updateTask(updatedTask: Task): Promise<Task> {
         ]);
 
         if (assigneeProfile && assignerProfile) {
-            await sendTaskAssignmentEmail(assigneeProfile, updatedTask, assignerProfile);
+            await sendTaskAssignmentNotification(assigneeProfile, updatedTask, assignerProfile);
         }
     }
     

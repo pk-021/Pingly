@@ -190,6 +190,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
 
   const watchedDueDate = useWatch({ control: form.control, name: 'dueDate' });
   const watchedStartTime = useWatch({ control: form.control, name: 'startTime' });
+  const watchedAssigneeId = useWatch({ control: form.control, name: 'assigneeId' });
 
   const allItems = useMemo(() => [...routine, ...tasks], [routine, tasks]);
 
@@ -279,21 +280,21 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
     const { startTime, endTime, assigneeId, ...restData } = data;
     let finalTaskData: Omit<Task, 'id' | 'completed' | 'creatorId'> | Task = { ...task, ...restData, completed: task?.completed || false };
 
-    if (assigneeId === 'personal') {
-        (finalTaskData as Task).assigneeId = undefined;
+    if (assigneeId === 'personal' || !assigneeId) {
+        (finalTaskData as Task).assigneeId = null;
+        if (startTime && endTime) {
+            const [startHour, startMinute] = startTime.split(':').map(Number);
+            const [endHour, endMinute] = endTime.split(':').map(Number);
+            
+            const startDateTime = setMinutes(setHours(data.dueDate, startHour), startMinute);
+            const endDateTime = setMinutes(setHours(data.dueDate, endHour), endMinute);
+            
+            finalTaskData = { ...finalTaskData, startTime: startDateTime, endTime: endDateTime };
+        } else {
+            finalTaskData = { ...finalTaskData, startTime: undefined, endTime: undefined };
+        }
     } else {
         (finalTaskData as Task).assigneeId = assigneeId;
-    }
-    
-    if (startTime && endTime) {
-        const [startHour, startMinute] = startTime.split(':').map(Number);
-        const [endHour, endMinute] = endTime.split(':').map(Number);
-        
-        const startDateTime = setMinutes(setHours(data.dueDate, startHour), startMinute);
-        const endDateTime = setMinutes(setHours(data.dueDate, endHour), endMinute);
-        
-        finalTaskData = { ...finalTaskData, startTime: startDateTime, endTime: endDateTime };
-    } else {
         finalTaskData = { ...finalTaskData, startTime: undefined, endTime: undefined };
     }
 
@@ -311,6 +312,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
   };
 
   const assignee = users.find(u => u.id === task?.assigneeId);
+  const isPersonalTask = !watchedAssigneeId || watchedAssigneeId === 'personal';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -398,7 +400,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                         name="assigneeId"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Assign to (Optional)</FormLabel>
+                            <FormLabel>Assign to</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                 <SelectTrigger>
@@ -407,7 +409,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                                 </FormControl>
                                 <SelectContent>
                                 <SelectItem value="personal">Nobody (Personal Task)</SelectItem>
-                                {users.map(user => (
+                                {users.filter(u => u.id !== auth.currentUser?.uid).map(user => (
                                     <SelectItem key={user.id} value={user.id}>{user.displayName}</SelectItem>
                                 ))}
                                 </SelectContent>
@@ -423,7 +425,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                         name="dueDate"
                         render={({ field }) => (
                             <FormItem className="flex-1 flex flex-col">
-                            <FormLabel>Due Date</FormLabel>
+                            <FormLabel>{isPersonalTask ? "Due Date" : "Deadline"}</FormLabel>
                             <Popover>
                                 <PopoverTrigger asChild>
                                 <FormControl>
@@ -463,7 +465,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                         )}
                     />
                     
-                    {watchedDueDate && (
+                    {isPersonalTask && watchedDueDate && (
                     <Collapsible defaultOpen className="space-y-4 rounded-md border p-4">
                         <CollapsibleTrigger asChild>
                              <div className="flex items-center justify-between cursor-pointer">
@@ -678,3 +680,4 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
     </Dialog>
   );
 }
+
