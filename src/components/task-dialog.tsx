@@ -322,7 +322,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
   
   const canCompleteTask = (isPersonalTask && isUserCreator) || isUserAssignee;
   const canEditTask = isEditing || !task; // Can edit if creating a new task, or explicitly in edit mode.
-  const canDeleteTask = isUserCreator || isUserAssignee;
+  const canDeleteTask = isUserCreator; // Only the creator can delete the task.
   const isPersonalContext = !watchedAssigneeId || watchedAssigneeId === 'personal';
 
   return (
