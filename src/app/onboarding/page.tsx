@@ -188,89 +188,93 @@ export default function OnboardingPage() {
               />
 
               <div className="space-y-4">
-                <Label className="text-lg">Weekly Class Routine</Label>
-                {fields.map((field, index) => (
-                  <Card key={field.id} className="p-4 relative bg-muted/30">
-                    <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => remove(index)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                <div>
+                    <Label className="text-lg">Weekly Class Routine</Label>
+                </div>
+                <div className="space-y-4">
+                    {fields.map((field, index) => (
+                    <Card key={field.id} className="p-4 relative bg-muted/30">
+                        <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => remove(index)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <FormField
+                            control={form.control}
+                            name={`routine.${index}.title`}
+                            render={({ field }) => (
+                            <FormItem className="lg:col-span-2">
+                                <FormLabel>Class/Event Title</FormLabel>
+                                <FormControl><Input placeholder="e.g., Data Structures" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name={`routine.${index}.dayOfWeek`}
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Day</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select day" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        {weekDays.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name={`routine.${index}.startTime`}
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Start Time</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        {timeSlots.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name={`routine.${index}.endTime`}
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>End Time</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        {timeSlots.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name={`routine.${index}.roomNumber`}
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Room (Opt.)</FormLabel>
+                                <FormControl><Input placeholder="e.g., A-101" {...field} /></FormControl>
+                            </FormItem>
+                            )}
+                        />
+                        </div>
+                    </Card>
+                    ))}
+                    <Button type="button" variant="outline" onClick={() => append({ title: '', dayOfWeek: '', startTime: '', endTime: '', roomNumber: '' })}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Class
                     </Button>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                      <FormField
-                        control={form.control}
-                        name={`routine.${index}.title`}
-                        render={({ field }) => (
-                          <FormItem className="lg:col-span-2">
-                            <FormLabel>Class/Event Title</FormLabel>
-                            <FormControl><Input placeholder="e.g., Data Structures" {...field} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                       <FormField
-                        control={form.control}
-                        name={`routine.${index}.dayOfWeek`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Day</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Select day" /></SelectTrigger></FormControl>
-                                <SelectContent>
-                                    {weekDays.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`routine.${index}.startTime`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Start Time</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
-                                <SelectContent>
-                                    {timeSlots.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`routine.${index}.endTime`}
-                        render={({ field }) => (
-                           <FormItem>
-                            <FormLabel>End Time</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
-                                <SelectContent>
-                                    {timeSlots.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`routine.${index}.roomNumber`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Room (Opt.)</FormLabel>
-                            <FormControl><Input placeholder="e.g., A-101" {...field} /></FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </Card>
-                ))}
-                <Button type="button" variant="outline" onClick={() => append({ title: '', dayOfWeek: '', startTime: '', endTime: '', roomNumber: '' })}>
-                  <PlusCircle className="mr-2 h-4 w-4" /> Add Class
-                </Button>
-                {form.formState.errors.routine && <p className="text-sm font-medium text-destructive">{form.formState.errors.routine.message}</p>}
+                    {form.formState.errors.routine && <p className="text-sm font-medium text-destructive">{form.formState.errors.routine.message}</p>}
+                </div>
               </div>
 
               <div className="flex justify-end">
