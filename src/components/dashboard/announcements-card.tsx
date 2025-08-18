@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getAnnouncements } from '@/lib/data-service';
 import type { Announcement } from '@/lib/types';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { Megaphone } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
@@ -18,9 +18,7 @@ export default function AnnouncementsCard() {
         async function loadAnnouncements() {
             setIsLoading(true);
             const fetchedAnnouncements = await getAnnouncements();
-            // Sort by most recent
-            const sorted = fetchedAnnouncements.sort((a,b) => b.createdAt.getTime() - a.createdAt.getTime());
-            setAnnouncements(sorted);
+            setAnnouncements(fetchedAnnouncements);
             setIsLoading(false);
         }
         loadAnnouncements();
@@ -45,9 +43,8 @@ export default function AnnouncementsCard() {
         )
     }
 
-    // Do not render the card if there are no announcements to show.
     if (announcements.length === 0) {
-        return null;
+        return null; // Don't show the card if there are no announcements
     }
 
     return (
@@ -57,7 +54,7 @@ export default function AnnouncementsCard() {
                     <Megaphone className="w-6 h-6 text-primary" />
                     Announcements
                 </CardTitle>
-                <CardDescription>Recent messages from the administration.</CardDescription>
+                <CardDescription>Recent messages from the admin team.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Accordion type="single" collapsible className="w-full" defaultValue={announcements[0]?.id}>
