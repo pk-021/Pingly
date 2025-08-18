@@ -14,6 +14,8 @@ import { TaskDialog } from '../task-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 import { ScrollArea } from '../ui/scroll-area';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
 
 const priorityIcons = {
     High: <ChevronUp className="w-4 h-4 text-red-500" />,
@@ -35,6 +37,7 @@ const getTaskStatus = (task: Task) => {
 };
 
 export default function UpcomingTasksCard() {
+    const [user] = useAuthState(auth);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [routine, setRoutine] = useState<CalendarEvent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -98,11 +101,16 @@ export default function UpcomingTasksCard() {
     }
 
     const filteredTasks = useMemo(() => {
-        const today = new Date();
-        if (filter === 'all') return tasks;
-        if (filter === 'completed') return tasks.filter(task => task.completed);
-        return tasks.filter(task => !task.completed);
-    }, [filter, tasks]);
+        if (!user) return [];
+        const userTasks = tasks.filter(task => {
+            // Include tasks assigned to the user OR tasks they created for themselves
+            return task.assigneeId === user.uid || (!task.assigneeId && task.creatorId === user.uid);
+        });
+
+        if (filter === 'all') return userTasks;
+        if (filter === 'completed') return userTasks.filter(task => task.completed);
+        return userTasks.filter(task => !task.completed);
+    }, [filter, tasks, user]);
 
     return (
         <>

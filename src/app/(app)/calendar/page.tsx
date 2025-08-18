@@ -19,8 +19,11 @@ import { useToast } from '@/hooks/use-toast';
 import { DailySchedulePanel } from '@/components/calendar/daily-schedule-panel';
 import { CalendarGrid } from '@/components/calendar/calendar-grid';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
 
 export default function CalendarPage() {
+  const [user] = useAuthState(auth);
   const [isLoading, setIsLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
@@ -121,6 +124,14 @@ export default function CalendarPage() {
     setSelectedTask(undefined);
     setIsTaskDialogOpen(true);
   }
+
+  const userVisibleTasks = useMemo(() => {
+    if (!user) return [];
+    return tasks.filter(task => {
+        // Show task if it's assigned to the user OR if it's a personal task created by the user
+        return task.assigneeId === user.uid || (!task.assigneeId && task.creatorId === user.uid);
+    });
+  }, [tasks, user]);
   
   if (!isClient) {
     return (
@@ -173,7 +184,7 @@ export default function CalendarPage() {
           <CalendarGrid
             currentDate={currentDate}
             selectedDate={selectedDate}
-            tasks={tasks}
+            tasks={userVisibleTasks}
             holidays={nepaliHolidays}
             onDateClick={setSelectedDate}
           />
@@ -182,7 +193,7 @@ export default function CalendarPage() {
         <div className="w-full lg:w-[400px] lg:max-w-[40%] flex-shrink-0">
           <DailySchedulePanel
             selectedDate={selectedDate}
-            tasks={tasks}
+            tasks={userVisibleTasks}
             routine={classRoutine}
             holidays={nepaliHolidays}
             isLoading={isLoading}

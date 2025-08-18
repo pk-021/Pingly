@@ -12,8 +12,11 @@ import { Skeleton } from "../ui/skeleton";
 import { TaskDialog } from '../task-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/lib/firebase";
 
 export default function DailyScheduleCard() {
+    const [user] = useAuthState(auth);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [classRoutine, setClassRoutine] = useState<CalendarEvent[]>([]);
     const [holidays, setHolidays] = useState<NepaliHoliday[]>([]);
@@ -115,10 +118,16 @@ export default function DailyScheduleCard() {
     }, [holidays, today]);
 
     const todayTasks = useMemo(() => {
+        if (!user) return [];
         return tasks
-            .filter(task => isToday(task.dueDate) && task.startTime)
+            .filter(task => 
+                isToday(task.dueDate) && 
+                task.startTime &&
+                // Show if it's a personal task OR it's assigned to the current user
+                (!task.assigneeId || task.assigneeId === user.uid)
+            )
             .sort((a, b) => a.startTime!.getTime() - b.startTime!.getTime());
-    }, [tasks]);
+    }, [tasks, user]);
 
     const todayRoutine = useMemo(() => {
         const todayDay = getDay(new Date());

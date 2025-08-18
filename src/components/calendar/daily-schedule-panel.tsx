@@ -12,6 +12,8 @@ import { Pin, BookOpen, ListTodo, CalendarDays, PartyPopper } from 'lucide-react
 import type { Task, CalendarEvent, NepaliHoliday } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
 
 type DailySchedulePanelProps = {
   selectedDate: Date;
@@ -30,6 +32,7 @@ export function DailySchedulePanel({
   isLoading,
   onTaskClick,
 }: DailySchedulePanelProps) {
+  const [user] = useAuthState(auth);
   const today = useMemo(() => startOfDay(new Date()), []);
   
   const tasksByDate = useMemo(() => {

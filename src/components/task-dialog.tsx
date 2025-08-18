@@ -45,6 +45,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Badge } from './ui/badge';
+import { useAuthState } from 'react-firebase-hooks/auth';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -158,6 +159,7 @@ function getAvailableSlots(date: Date, allItems: (Task | CalendarEvent)[], curre
 
 
 export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, tasks }: TaskDialogProps) {
+  const [user] = useAuthState(auth);
   const [isEditing, setIsEditing] = useState(!task);
   const [users, setUsers] = useState<UserProfile[]>([]);
 
@@ -203,7 +205,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
   const availableStartSlots = useMemo(() => {
     if (!watchedDueDate) return [];
     return getAvailableSlots(watchedDueDate, allItems, task?.id).map(s => s.start);
-  }, [watchedDueDate, allItems, task?.id])
+  }, [watchedDueDate, allItems, task?.id]);
 
   const availableEndSlots = useMemo(() => {
       if (!watchedStartTime || !watchedDueDate) return [];
@@ -311,8 +313,12 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
     }
   };
 
+  const creator = users.find(u => u.id === task?.creatorId);
   const assignee = users.find(u => u.id === task?.assigneeId);
-  const isPersonalTask = !watchedAssigneeId || watchedAssigneeId === 'personal';
+  const isPersonalTask = !task?.assigneeId;
+  const isUserAssignee = user?.uid === task?.assigneeId;
+  const isUserCreator = user?.uid === task?.creatorId;
+  const canCompleteTask = (isPersonalTask && isUserCreator) || isUserAssignee;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -425,7 +431,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                         name="dueDate"
                         render={({ field }) => (
                             <FormItem className="flex-1 flex flex-col">
-                            <FormLabel>{isPersonalTask ? "Due Date" : "Deadline"}</FormLabel>
+                            <FormLabel>{watchedAssigneeId === 'personal' ? "Due Date" : "Deadline"}</FormLabel>
                             <Popover>
                                 <PopoverTrigger asChild>
                                 <FormControl>
@@ -465,7 +471,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                         )}
                     />
                     
-                    {isPersonalTask && watchedDueDate && (
+                    {watchedAssigneeId === 'personal' && watchedDueDate && (
                     <Collapsible defaultOpen className="space-y-4 rounded-md border p-4">
                         <CollapsibleTrigger asChild>
                              <div className="flex items-center justify-between cursor-pointer">
@@ -593,17 +599,10 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                         </div>
                     )}
                     
-                    {assignee ? (
-                        <div>
-                            <h3 className="text-sm font-medium text-muted-foreground">Assigned To</h3>
-                            <p className="text-sm">{assignee.displayName} {task.creatorId === auth.currentUser?.uid && "(You assigned)"}</p>
-                        </div>
-                    ) : (
-                        <div>
-                            <h3 className="text-sm font-medium text-muted-foreground">Assigned To</h3>
-                            <p className="text-sm">Personal Task (Only you)</p>
-                        </div>
-                    )}
+                    <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Assigned by</h3>
+                        <p className="text-sm">{creator?.displayName || "..."} {task.creatorId === user?.uid && "(You)"}</p>
+                    </div>
 
 
                     <div className="flex gap-8">
@@ -646,7 +645,9 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                                     </FormItem>
                                 )}
                             />
-                             <Button type="submit" className="w-full">Mark as Complete</Button>
+                             <Button type="submit" className="w-full" disabled={!canCompleteTask}>
+                                {canCompleteTask ? "Mark as Complete" : "Cannot complete: not assigned to you"}
+                             </Button>
                         </div>
                     )}
                     
@@ -680,4 +681,3 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
     </Dialog>
   );
 }
-
