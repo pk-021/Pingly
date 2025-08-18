@@ -12,13 +12,15 @@ export default function SettingsPage() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    // This effect runs only on the client, after the initial render.
+    // It safely reads from localStorage and updates the state.
     const storedValue = localStorage.getItem('nepali-calendar-enabled');
     setIsNepaliCalendarEnabled(storedValue === 'true');
     setIsClient(true);
   }, []);
 
   const handleSwitchChange = (checked: boolean) => {
-    if (!isClient) return;
+    // This function will only run on the client where localStorage is available.
     setIsNepaliCalendarEnabled(checked);
     localStorage.setItem('nepali-calendar-enabled', String(checked));
     // A full reload ensures all components re-check the localStorage value.

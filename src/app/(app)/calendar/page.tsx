@@ -31,6 +31,9 @@ export default function CalendarPage() {
 
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
+  
+  // This state now controls whether to fetch holiday data.
+  // It starts as false and is set in a client-side effect.
   const [showNepaliCalendar, setShowNepaliCalendar] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
@@ -41,43 +44,20 @@ export default function CalendarPage() {
   }, []);
 
   useEffect(() => {
+    // This effect runs after the component has mounted on the client.
+    // It safely checks localStorage and sets the state to trigger data fetching.
     if (isClient) {
-      // Only run this if we are on the client side.
       const setting = localStorage.getItem('nepali-calendar-enabled') === 'true';
       setShowNepaliCalendar(setting);
     }
   }, [isClient]);
 
-  useEffect(() => {
-    // This effect handles data loading. It re-runs whenever the holiday setting changes.
-    // It will not run on initial server render because isClient is false.
-    if (!isClient) return;
-
-    const loadData = async () => {
-      setIsLoading(true);
-      const [fetchedTasks, fetchedClassRoutine] = await Promise.all([getTasks(), getClassRoutine()]);
-      
-      setTasks(fetchedTasks as Task[]);
-      setClassRoutine(fetchedClassRoutine as CalendarEvent[]);
-
-      if (showNepaliCalendar) {
-          const fetchedHolidays = await getNepaliHolidays();
-          setNepaliHolidays(fetchedHolidays);
-      } else {
-          setNepaliHolidays([]);
-      }
-      setIsLoading(false);
-    };
-
-    loadData();
-  }, [showNepaliCalendar, isClient]);
-  
-  const reloadAllData = async () => {
-    if (!isClient) return;
+  const loadData = async () => {
     setIsLoading(true);
     const [fetchedTasks, fetchedClassRoutine] = await Promise.all([getTasks(), getClassRoutine()]);
-    setTasks(fetchedTasks);
-    setClassRoutine(fetchedClassRoutine);
+    
+    setTasks(fetchedTasks as Task[]);
+    setClassRoutine(fetchedClassRoutine as CalendarEvent[]);
 
     if (showNepaliCalendar) {
         const fetchedHolidays = await getNepaliHolidays();
@@ -86,6 +66,18 @@ export default function CalendarPage() {
         setNepaliHolidays([]);
     }
     setIsLoading(false);
+  };
+  
+  useEffect(() => {
+    // This effect handles data loading. It re-runs whenever the holiday setting changes.
+    // It will not run on initial server render because isClient is false.
+    if (!isClient) return;
+    loadData();
+  }, [showNepaliCalendar, isClient]);
+  
+  const reloadAllData = async () => {
+    if (!isClient) return;
+    loadData();
   }
 
   const handleTaskDialogClose = () => {
@@ -132,7 +124,7 @@ export default function CalendarPage() {
   
   if (!isClient) {
     return (
-        <div className="flex flex-col lg:flex-row gap-8 h-full w-full">
+        <div className="flex flex-col lg:flex-row gap-8 h-full w-full p-6">
             <div className="flex-1 space-y-4">
                 <Skeleton className="h-10 w-1/3" />
                 <Skeleton className="h-[70vh] w-full" />

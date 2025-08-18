@@ -37,7 +37,6 @@ export default function DailyScheduleCard() {
     }, [isClient]);
 
     const loadData = async () => {
-        if (!isClient) return;
         setIsLoading(true);
         const [fetchedTasks, fetchedClassRoutine] = await Promise.all([
             getTasks(), 
@@ -56,7 +55,9 @@ export default function DailyScheduleCard() {
     };
 
     useEffect(() => {
-        loadData();
+        if (isClient) {
+            loadData();
+        }
     }, [isClient, showNepaliCalendar]);
     
     const handleTaskDialogClose = () => {
@@ -73,7 +74,7 @@ export default function DailyScheduleCard() {
             await addTask(task as Omit<Task, 'id' | 'creatorId' | 'completed'>);
             toast({ title: "Task Added", description: "Your new task has been successfully added." });
           }
-          loadData();
+          if (isClient) loadData();
           handleTaskDialogClose();
         } catch (error) {
           toast({ variant: 'destructive', title: "Error", description: "Failed to save the task." });
@@ -84,7 +85,7 @@ export default function DailyScheduleCard() {
         try {
             await deleteTask(taskId);
             toast({ title: "Task Deleted", description: "The task has been removed." });
-            loadData();
+            if (isClient) loadData();
             handleTaskDialogClose();
         } catch (error) {
             toast({ variant: 'destructive', title: "Error", description: "Failed to delete the task." });
