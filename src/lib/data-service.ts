@@ -136,6 +136,16 @@ export async function updateUserRole(userId: string, newRole: UserProfile['role'
     }
 }
 
+export async function updateUserDepartment(userId: string, department: string): Promise<void> {
+    const userRef = doc(db, "users", userId);
+    try {
+        await updateDoc(userRef, { department });
+    } catch (error) {
+        console.error("Error updating user department:", error);
+        throw new Error("Failed to update user department.");
+    }
+}
+
 export async function updateUserIsAdmin(userId: string, isAdmin: boolean): Promise<void> {
     const userRef = doc(db, "users", userId);
     try {
