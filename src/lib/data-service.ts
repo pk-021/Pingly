@@ -237,27 +237,39 @@ export async function createAnnouncement(announcement: { title: string; content:
     return { id: docRef.id, ...newAnnouncementData, createdAt: newAnnouncementData.createdAt.toDate() } as Announcement;
 }
 
-// Placeholder for the notification sending function.
-// In a real application, this would trigger a Firebase Function.
-async function sendTaskAssignmentNotification(assignee: UserProfile, task: Task, assigner: UserProfile) {
-    // NOTE: For Twilio to work, the 'assignee' UserProfile would need a 'phoneNumber' field.
-    const smsBody = `
-        Hi ${assignee.displayName}, you have a new task from ${assigner.displayName}: "${task.title}". Due: ${task.dueDate.toLocaleDateString()}.
-    `;
+// Function to trigger an email using the "Trigger Email" Firebase Extension.
+async function sendTaskAssignmentEmail(assignee: UserProfile, task: Task, assigner: UserProfile) {
+    if (!assignee.email) {
+        console.error("Assignee does not have an email address.");
+        return;
+    }
 
-    console.log("---- SIMULATING NOTIFICATION ----");
-    console.log("This would trigger a Firebase Function which then calls the Twilio API.");
-    console.log(`Recipient: ${assignee.displayName} (Phone: ${assignee.phoneNumber || 'N/A'})`);
-    console.log(`Message: ${smsBody}`);
-    console.log("---------------------------------");
-
-    // In a real implementation, you would make a call to a Firebase Function here
-    // e.g., const sendNotification = httpsCallable(functions, 'sendTaskNotification');
-    // await sendNotification({ 
-    //      to: assignee.phoneNumber, 
-    //      body: smsBody 
-    // });
+    const mailCollection = collection(db, 'mail');
+    await addDoc(mailCollection, {
+        to: [assignee.email],
+        message: {
+            subject: `New Task Assigned in Pingly: ${task.title}`,
+            html: `
+                <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+                    <h2>Hello ${assignee.displayName},</h2>
+                    <p>You have been assigned a new task by <strong>${assigner.displayName}</strong>.</p>
+                    <hr>
+                    <h3>Task Details:</h3>
+                    <p><strong>Title:</strong> ${task.title}</p>
+                    <p><strong>Due Date:</strong> ${task.dueDate.toLocaleDateString()}</p>
+                    ${task.description ? `<p><strong>Description:</strong> ${task.description}</p>` : ''}
+                    ${task.priority ? `<p><strong>Priority:</strong> ${task.priority}</p>` : ''}
+                    <hr>
+                    <p>Please log in to Pingly to view and manage your tasks.</p>
+                    <p>Thank you,</p>
+                    <p>The Pingly Team</p>
+                </div>
+            `,
+        }
+    });
+    console.log(`Email document created for task "${task.title}" assigned to ${assignee.email}. The 'Trigger Email' extension will handle sending.`);
 }
+
 
 export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>): Promise<Task> {
     const user = auth.currentUser;
@@ -297,7 +309,7 @@ export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>
         ]);
 
         if (assigneeProfile && assignerProfile) {
-            await sendTaskAssignmentNotification(assigneeProfile, finalTask, assignerProfile);
+            await sendTaskAssignmentEmail(assigneeProfile, finalTask, assignerProfile);
         }
     }
     
@@ -343,7 +355,7 @@ export async function updateTask(updatedTask: Task): Promise<Task> {
         ]);
 
         if (assigneeProfile && assignerProfile) {
-            await sendTaskAssignmentNotification(assigneeProfile, updatedTask, assignerProfile);
+            await sendTaskAssignmentEmail(assigneeProfile, updatedTask, assignerProfile);
         }
     }
     
