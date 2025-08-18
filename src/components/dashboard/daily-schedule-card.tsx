@@ -23,37 +23,43 @@ export default function DailyScheduleCard() {
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
     const [showNepaliCalendar, setShowNepaliCalendar] = useState(false);
+    const today = useMemo(() => new Date(), []);
 
     useEffect(() => {
-        const setting = localStorage.getItem('nepali-calendar-enabled') === 'true';
-        setShowNepaliCalendar(setting);
         setIsClient(true);
     }, []);
+    
+    useEffect(() => {
+        if (isClient) {
+            const setting = localStorage.getItem('nepali-calendar-enabled') === 'true';
+            setShowNepaliCalendar(setting);
+        }
+    }, [isClient]);
+
+    const loadData = async () => {
+        setIsLoading(true);
+        const [fetchedTasks, fetchedClassRoutine] = await Promise.all([
+            getTasks(), 
+            getClassRoutine(),
+        ]);
+        setTasks(fetchedTasks);
+        setClassRoutine(fetchedClassRoutine);
+
+        if (showNepaliCalendar) {
+            const fetchedHolidays = await getNepaliHolidays();
+            setHolidays(fetchedHolidays);
+        } else {
+            setHolidays([]);
+        }
+        setIsLoading(false);
+    };
 
     useEffect(() => {
-        if (!isClient) return;
-
-        const loadData = async () => {
-            setIsLoading(true);
-            const [fetchedTasks, fetchedClassRoutine, fetchedHolidays] = await Promise.all([
-                getTasks(), 
-                getClassRoutine(),
-                showNepaliCalendar ? getNepaliHolidays() : Promise.resolve([]),
-            ]);
-            setTasks(fetchedTasks);
-            setClassRoutine(fetchedClassRoutine);
-            setHolidays(fetchedHolidays);
-            setIsLoading(false);
-        };
-
-        loadData();
+        if (isClient) {
+            loadData();
+        }
     }, [isClient, showNepaliCalendar]);
     
-    const reloadData = () => {
-        const setting = localStorage.getItem('nepali-calendar-enabled') === 'true';
-        setShowNepaliCalendar(setting);
-    }
-
     const handleTaskDialogClose = () => {
         setIsTaskDialogOpen(false);
         setSelectedTask(undefined);
@@ -68,7 +74,7 @@ export default function DailyScheduleCard() {
             await addTask(task as Omit<Task, 'id' | 'creatorId' | 'completed'>);
             toast({ title: "Task Added", description: "Your new task has been successfully added." });
           }
-          reloadData();
+          loadData();
           handleTaskDialogClose();
         } catch (error) {
           toast({ variant: 'destructive', title: "Error", description: "Failed to save the task." });
@@ -79,7 +85,7 @@ export default function DailyScheduleCard() {
         try {
             await deleteTask(taskId);
             toast({ title: "Task Deleted", description: "The task has been removed." });
-            reloadData();
+            loadData();
             handleTaskDialogClose();
         } catch (error) {
             toast({ variant: 'destructive', title: "Error", description: "Failed to delete the task." });
@@ -90,8 +96,6 @@ export default function DailyScheduleCard() {
         setSelectedTask(task);
         setIsTaskDialogOpen(true);
     }
-
-    const today = new Date();
 
     const holidayInfo = useMemo(() => {
         if (getDay(today) === 6) return { isHoliday: true, name: 'Saturday' };
