@@ -13,14 +13,16 @@ export default function SettingsPage() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
     const storedValue = localStorage.getItem('nepali-calendar-enabled');
     setIsNepaliCalendarEnabled(storedValue === 'true');
+    setIsClient(true);
   }, []);
 
   const handleSwitchChange = (checked: boolean) => {
     setIsNepaliCalendarEnabled(checked);
     localStorage.setItem('nepali-calendar-enabled', String(checked));
+    // Instead of a full reload, we can notify other components if needed,
+    // but for now, a reload is simple and effective.
     window.location.reload();
   };
 

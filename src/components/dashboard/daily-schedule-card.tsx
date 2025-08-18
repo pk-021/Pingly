@@ -22,36 +22,37 @@ export default function DailyScheduleCard() {
     const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
     const { toast } = useToast();
     const [isClient, setIsClient] = useState(false);
+    const [showNepaliCalendar, setShowNepaliCalendar] = useState(false);
 
     useEffect(() => {
+        const setting = localStorage.getItem('nepali-calendar-enabled') === 'true';
+        setShowNepaliCalendar(setting);
         setIsClient(true);
     }, []);
 
-    const loadData = async () => {
-        setIsLoading(true);
-        const [fetchedTasks, fetchedClassRoutine, fetchedHolidays] = await Promise.all([
-            getTasks(), 
-            getClassRoutine(),
-            getNepaliHolidays()
-        ]);
-        setTasks(fetchedTasks);
-        setClassRoutine(fetchedClassRoutine);
-
-        if (isClient) {
-            const nepaliCalendarEnabled = localStorage.getItem('nepali-calendar-enabled') === 'true';
-            setHolidays(nepaliCalendarEnabled ? fetchedHolidays : []);
-        } else {
-            setHolidays([]);
-        }
-
-        setIsLoading(false);
-    };
-
     useEffect(() => {
-        if (isClient) {
-            loadData();
-        }
-    }, [isClient]);
+        if (!isClient) return;
+
+        const loadData = async () => {
+            setIsLoading(true);
+            const [fetchedTasks, fetchedClassRoutine, fetchedHolidays] = await Promise.all([
+                getTasks(), 
+                getClassRoutine(),
+                showNepaliCalendar ? getNepaliHolidays() : Promise.resolve([]),
+            ]);
+            setTasks(fetchedTasks);
+            setClassRoutine(fetchedClassRoutine);
+            setHolidays(fetchedHolidays);
+            setIsLoading(false);
+        };
+
+        loadData();
+    }, [isClient, showNepaliCalendar]);
+    
+    const reloadData = () => {
+        const setting = localStorage.getItem('nepali-calendar-enabled') === 'true';
+        setShowNepaliCalendar(setting);
+    }
 
     const handleTaskDialogClose = () => {
         setIsTaskDialogOpen(false);
@@ -67,9 +68,7 @@ export default function DailyScheduleCard() {
             await addTask(task as Omit<Task, 'id' | 'creatorId' | 'completed'>);
             toast({ title: "Task Added", description: "Your new task has been successfully added." });
           }
-          if (isClient) {
-            loadData();
-          }
+          reloadData();
           handleTaskDialogClose();
         } catch (error) {
           toast({ variant: 'destructive', title: "Error", description: "Failed to save the task." });
@@ -80,9 +79,7 @@ export default function DailyScheduleCard() {
         try {
             await deleteTask(taskId);
             toast({ title: "Task Deleted", description: "The task has been removed." });
-            if (isClient) {
-              loadData();
-            }
+            reloadData();
             handleTaskDialogClose();
         } catch (error) {
             toast({ variant: 'destructive', title: "Error", description: "Failed to delete the task." });
@@ -98,9 +95,10 @@ export default function DailyScheduleCard() {
 
     const holidayInfo = useMemo(() => {
         if (getDay(today) === 6) return { isHoliday: true, name: 'Saturday' };
+        if (!showNepaliCalendar) return { isHoliday: false, name: null };
         const foundHoliday = holidays.find(h => isSameDay(h.date, today));
         return foundHoliday ? { isHoliday: true, name: foundHoliday.name } : { isHoliday: false, name: null };
-    }, [holidays, today]);
+    }, [holidays, today, showNepaliCalendar]);
 
     const todayTasks = useMemo(() => {
         return tasks
@@ -143,7 +141,7 @@ export default function DailyScheduleCard() {
                     <CardDescription>Your class routine and scheduled tasks for today.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {isLoading || !isClient ? (
+                    {isLoading ? (
                         <div className="space-y-6">
                              <Skeleton className="h-24 w-full" />
                              <Skeleton className="h-24 w-full" />

@@ -18,6 +18,7 @@ import { TaskDialog } from '@/components/task-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { DailySchedulePanel } from '@/components/calendar/daily-schedule-panel';
 import { CalendarGrid } from '@/components/calendar/calendar-grid';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function CalendarPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -34,34 +35,34 @@ export default function CalendarPage() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
     const setting = localStorage.getItem('nepali-calendar-enabled') === 'true';
     setShowNepaliCalendar(setting);
+    setIsClient(true);
   }, []);
 
   useEffect(() => {
     if (!isClient) return;
 
+    const loadData = async () => {
+      setIsLoading(true);
+      const promises: [Promise<Task[]>, Promise<CalendarEvent[]>, Promise<NepaliHoliday[]>?] = [getTasks(), getClassRoutine()];
+      if (showNepaliCalendar) {
+          promises.push(getNepaliHolidays());
+      }
+      const [fetchedTasks, fetchedClassRoutine, fetchedHolidays] = await Promise.all(promises);
+      
+      setTasks(fetchedTasks as Task[]);
+      setClassRoutine(fetchedClassRoutine as CalendarEvent[]);
+      if (fetchedHolidays) {
+          setNepaliHolidays(fetchedHolidays as NepaliHoliday[]);
+      } else {
+          setNepaliHolidays([]);
+      }
+      setIsLoading(false);
+    };
+
     loadData();
   }, [showNepaliCalendar, isClient]);
-
-  const loadData = async () => {
-    setIsLoading(true);
-    const promises: [Promise<Task[]>, Promise<CalendarEvent[]>, Promise<NepaliHoliday[]>?] = [getTasks(), getClassRoutine()];
-    if (showNepaliCalendar) {
-        promises.push(getNepaliHolidays());
-    }
-    const [fetchedTasks, fetchedClassRoutine, fetchedHolidays] = await Promise.all(promises);
-    
-    setTasks(fetchedTasks as Task[]);
-    setClassRoutine(fetchedClassRoutine as CalendarEvent[]);
-    if (fetchedHolidays) {
-        setNepaliHolidays(fetchedHolidays as NepaliHoliday[]);
-    } else {
-        setNepaliHolidays([]);
-    }
-    setIsLoading(false);
-  };
 
   const handleTaskDialogClose = () => {
     setIsTaskDialogOpen(false);
@@ -78,7 +79,9 @@ export default function CalendarPage() {
         toast({ title: "Task Added", description: "Your new task has been successfully added." });
       }
       if (isClient) {
-        loadData();
+        // Re-trigger the data loading effect
+        const setting = localStorage.getItem('nepali-calendar-enabled') === 'true';
+        setShowNepaliCalendar(setting);
       }
       handleTaskDialogClose();
     } catch (error) {
@@ -91,7 +94,9 @@ export default function CalendarPage() {
         await deleteTask(taskId);
         toast({ title: "Task Deleted", description: "The task has been removed." });
         if (isClient) {
-          loadData();
+           // Re-trigger the data loading effect
+          const setting = localStorage.getItem('nepali-calendar-enabled') === 'true';
+          setShowNepaliCalendar(setting);
         }
         handleTaskDialogClose();
     } catch (error) {
@@ -110,7 +115,17 @@ export default function CalendarPage() {
   }
   
   if (!isClient) {
-    return null;
+    return (
+        <div className="flex flex-col lg:flex-row gap-8 h-full w-full">
+            <div className="flex-1 space-y-4">
+                <Skeleton className="h-10 w-1/3" />
+                <Skeleton className="h-[70vh] w-full" />
+            </div>
+            <div className="w-full lg:w-[400px]">
+                 <Skeleton className="h-full w-full" />
+            </div>
+        </div>
+    )
   }
 
   return (
