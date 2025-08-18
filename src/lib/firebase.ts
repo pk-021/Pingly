@@ -3,6 +3,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import { getDatabase, type Database } from "firebase/database";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -15,12 +16,14 @@ const firebaseConfig = {
   storageBucket: "pingly0.firebasestorage.app",
   messagingSenderId: "898991883909",
   appId: "1:898991883909:web:9bfe8775f4cbc440ab4bec",
-  measurementId: "G-38HQ6H5QCB"
+  measurementId: "G-38HQ6H5QCB",
+  databaseURL: "https://pingly0-default-rtdb.firebaseio.com"
 };
 // Initialize Firebase for client-side
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
+let rtdb: Database;
 
 function getFirebaseApp() {
     if (getApps().length === 0) {
@@ -30,7 +33,8 @@ function getFirebaseApp() {
     }
     auth = getAuth(app);
     db = getFirestore(app);
-    return { app, auth, db };
+    rtdb = getDatabase(app);
+    return { app, auth, db, rtdb };
 }
 
 // Initialize on load
@@ -38,5 +42,6 @@ const initialized = getFirebaseApp();
 app = initialized.app;
 auth = initialized.auth;
 db = initialized.db;
+rtdb = initialized.rtdb;
 
-export { getFirebaseApp, app, auth, db };
+export { getFirebaseApp, app, auth, db, rtdb };
