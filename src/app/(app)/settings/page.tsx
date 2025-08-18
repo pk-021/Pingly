@@ -196,19 +196,21 @@ export default function SettingsPage() {
                 <CardTitle className="flex items-center gap-2"><KeyRound/> Security Settings</CardTitle>
                 <CardDescription>Manage your account security, like changing your password.</CardDescription>
             </CardHeader>
-            <CardContent className="border-b">
-                 <div className="p-4 text-center">
-                    <Label className="text-base">Reset Password</Label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        Click the button to receive a password reset link in your email.
-                    </p>
+            <CardContent>
+                <div className="rounded-lg border bg-card text-card-foreground p-6">
+                    <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <Label className="text-base font-semibold">Reset Your Password</Label>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                A password reset link will be sent to your registered email address.
+                            </p>
+                        </div>
+                        <Button variant="secondary" onClick={handlePasswordReset} disabled={authLoading} className="w-full sm:w-auto flex-shrink-0">
+                            Send Reset Link
+                        </Button>
+                    </div>
                 </div>
             </CardContent>
-            <CardFooter className="flex justify-center pt-4">
-                <Button variant="secondary" onClick={handlePasswordReset} disabled={authLoading}>
-                    Send Reset Link
-                </Button>
-            </CardFooter>
         </Card>
     </div>
   );
