@@ -64,7 +64,7 @@ export async function createUserProfile(user: { uid: string, email: string | nul
             return;
         }
         
-        const newUserProfile: Omit<UserProfile, 'id' | 'createdAt' | 'isAdmin' | 'role'> = {
+        const newUserProfile: Omit<UserProfile, 'id' | 'createdAt' | 'isAdmin' | 'role' | 'hasCompletedOnboarding'> = {
             email: user.email || "",
             displayName: user.displayName || "New User",
             department: "",
@@ -237,6 +237,36 @@ export async function createAnnouncement(announcement: { title: string; content:
     return { id: docRef.id, ...newAnnouncementData, createdAt: newAnnouncementData.createdAt.toDate() } as Announcement;
 }
 
+// Placeholder for the email sending function.
+// In a real application, this would trigger a Firebase Function.
+async function sendTaskAssignmentEmail(assignee: UserProfile, task: Task, assigner: UserProfile) {
+    const emailBody = `
+        Hello ${assignee.displayName},
+
+        A new task has been assigned to you by ${assigner.displayName}.
+
+        Task Details:
+        - Title: ${task.title}
+        - Due Date: ${task.dueDate.toLocaleDateString()}
+        - Priority: ${task.priority}
+        ${task.description ? `- Description: ${task.description}` : ''}
+
+        You can view this task in your Pingly dashboard.
+
+        Thank you,
+        The Pingly Team
+    `;
+
+    console.log("---- SENDING EMAIL (SIMULATED) ----");
+    console.log(`To: ${assignee.email}`);
+    console.log(`Subject: New Task Assigned: ${task.title}`);
+    console.log(emailBody);
+    console.log("------------------------------------");
+
+    // In a real implementation, you would make a call to a Firebase Function here
+    // e.g., await functions.httpsCallable('sendEmail')(emailData);
+}
+
 export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>): Promise<Task> {
     const user = auth.currentUser;
     if (!user) throw new Error("User not authenticated");
@@ -260,17 +290,35 @@ export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>
 
     const docRef = await addDoc(collection(db, "tasks"), newTaskData);
     
-    return {
+    const finalTask = {
         id: docRef.id,
         ...task,
         creatorId: user.uid,
         completed: false,
         createdAt: newTaskData.createdAt.toDate(),
     };
+    
+    if (finalTask.assigneeId) {
+        const [assigneeProfile, assignerProfile] = await Promise.all([
+            getUserProfile(finalTask.assigneeId),
+            getUserProfile(user.uid)
+        ]);
+
+        if (assigneeProfile && assignerProfile) {
+            await sendTaskAssignmentEmail(assigneeProfile, finalTask, assignerProfile);
+        }
+    }
+    
+    return finalTask;
 }
 
 export async function updateTask(updatedTask: Task): Promise<Task> {
     const taskRef = doc(db, "tasks", updatedTask.id);
+    
+    // Get the state of the task before the update
+    const originalTaskDoc = await getDoc(taskRef);
+    const originalTask = originalTaskDoc.exists() ? taskFromDoc(originalTaskDoc) : null;
+    
     const { id, dueDate, startTime, endTime, createdAt, ...taskData } = updatedTask;
 
     const dataToUpdate: any = { ...taskData };
@@ -288,6 +336,25 @@ export async function updateTask(updatedTask: Task): Promise<Task> {
     }
 
     await updateDoc(taskRef, dataToUpdate);
+    
+    // Check if the assignee has changed
+    const newAssigneeId = updatedTask.assigneeId;
+    const oldAssigneeId = originalTask ? originalTask.assigneeId : null;
+
+    if (newAssigneeId && newAssigneeId !== oldAssigneeId) {
+        const user = auth.currentUser;
+        if (!user) throw new Error("User not authenticated for sending update email");
+        
+        const [assigneeProfile, assignerProfile] = await Promise.all([
+            getUserProfile(newAssigneeId),
+            getUserProfile(user.uid)
+        ]);
+
+        if (assigneeProfile && assignerProfile) {
+            await sendTaskAssignmentEmail(assigneeProfile, updatedTask, assignerProfile);
+        }
+    }
+    
     return updatedTask;
 }
 
@@ -412,5 +479,3 @@ export async function addAnnouncement(announcement: Omit<Announcement, 'id' | 'a
         createdAt: newAnnouncementData.createdAt.toDate(),
     } as Announcement;
 }
-
-    
