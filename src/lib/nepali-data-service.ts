@@ -6,8 +6,9 @@ import { getFirebaseApp } from './firebase';
 
 const { db } = getFirebaseApp();
 
-// Static list of holidays for 2024 to be used for seeding the database.
-const nepaliHolidays2024_Seed: Omit<NepaliHoliday, 'id'>[] = [
+// Static list of holidays for 2024, 2025 and 2026 to be used for seeding the database.
+const nepaliHolidaysSeedData: Omit<NepaliHoliday, 'id'>[] = [
+    // 2024 Holidays
     { date: new Date('2024-01-11'), name: 'Prithvi Jayanti' },
     { date: new Date('2024-01-15'), name: 'Maghe Sankranti' },
     { date: new Date('2024-01-30'), name: 'Martyr\'s Day' },
@@ -43,6 +44,54 @@ const nepaliHolidays2024_Seed: Omit<NepaliHoliday, 'id'>[] = [
     { date: new Date('2024-11-07'), name: 'Chhath Puja' },
     { date: new Date('2024-12-25'), name: 'Christmas Day' },
     { date: new Date('2024-12-30'), name: 'Tamu Lhosar' },
+    // 2025 Holidays
+    { date: new Date('2025-01-01'), name: "New Year's Day" },
+    { date: new Date('2025-01-15'), name: "Maghe Sankranti" },
+    { date: new Date('2025-01-26'), name: "Vasant Panchami" },
+    { date: new Date('2025-01-30'), name: "Martyrs' Day" },
+    { date: new Date('2025-02-07'), name: "Democracy Day" },
+    { date: new Date('2025-02-13'), name: "Maha Shivaratri" },
+    { date: new Date('2025-02-26'), name: "Holi" },
+    { date: new Date('2025-03-08'), name: "International Women's Day" },
+    { date: new Date('2025-03-13'), name: "Ghode Jatra" },
+    { date: new Date('2025-04-13'), name: "Chaitra Dashain" },
+    { date: new Date('2025-04-14'), name: "Nepali New Year" },
+    { date: new Date('2025-05-01'), name: "Labor Day" },
+    { date: new Date('2025-05-12'), name: "Buddha Jayanti" },
+    { date: new Date('2025-05-29'), name: "Republic Day" },
+    { date: new Date('2025-08-11'), name: "Janai Purnima" },
+    { date: new Date('2025-08-19'), name: "Gai Jatra" },
+    { date: new Date('2025-08-26'), name: "Krishna Janmashtami" },
+    { date: new Date('2025-09-07'), name: "Teej (Haritalika)" },
+    { date: new Date('2025-09-17'), name: "Rishi Panchami" },
+    { date: new Date('2025-10-02'), name: "Ghatasthapana (Dashain Begins)" },
+    { date: new Date('2025-10-10'), name: "Vijaya Dashami" },
+    { date: new Date('2025-10-21'), name: "Laxmi Puja" },
+    { date: new Date('2025-10-23'), name: "Govardhan Puja" },
+    { date: new Date('2025-12-25'), name: "Christmas Day" },
+    { date: new Date('2025-12-30'), name: "Tamu Lhosar" },
+    // 2026 Holidays
+    { date: new Date('2026-01-01'), name: "New Year's Day" },
+    { date: new Date('2026-01-15'), name: "Maghe Sankranti" },
+    { date: new Date('2026-01-30'), name: "Martyrs' Day" },
+    { date: new Date('2026-02-07'), name: "Democracy Day" },
+    { date: new Date('2026-02-14'), name: "Vasant Panchami" },
+    { date: new Date('2026-02-21'), name: "Sonam Lhosar" },
+    { date: new Date('2026-03-03'), name: "Maha Shivaratri" },
+    { date: new Date('2026-03-08'), name: "International Women's Day" },
+    { date: new Date('2026-03-14'), name: "Holi" },
+    { date: new Date('2026-04-14'), name: "Nepali New Year" },
+    { date: new Date('2026-05-01'), name: "Labor Day" },
+    { date: new Date('2026-05-29'), name: "Republic Day" },
+    { date: new Date('2026-05-31'), name: "Buddha Jayanti" },
+    { date: new Date('2026-08-15'), name: "Krishna Janmashtami" },
+    { date: new Date('2026-08-30'), name: "Janai Purnima" },
+    { date: new Date('2026-09-26'), name: "Teej (Haritalika)" },
+    { date: new Date('2026-10-21'), name: "Ghatasthapana (Dashain Begins)" },
+    { date: new Date('2026-10-29'), name: "Vijaya Dashami" },
+    { date: new Date('2026-11-09'), name: "Laxmi Puja" },
+    { date: new Date('2026-11-11'), name: "Govardhan Puja" },
+    { date: new Date('2026-12-25'), name: "Christmas Day" },
 ];
 
 async function seedHolidays(): Promise<NepaliHoliday[]> {
@@ -52,7 +101,7 @@ async function seedHolidays(): Promise<NepaliHoliday[]> {
     
     const seededHolidays: NepaliHoliday[] = [];
 
-    nepaliHolidays2024_Seed.forEach(holiday => {
+    nepaliHolidaysSeedData.forEach(holiday => {
         const docRef = collection(holidaysRef).doc(); // Auto-generate ID
         batch.set(docRef, {
             name: holiday.name,
@@ -89,6 +138,6 @@ export async function getNepaliHolidays(): Promise<NepaliHoliday[]> {
   } catch (error) {
     console.error("Error fetching or seeding holidays: ", error);
     // Fallback to static data in case of Firestore error
-    return nepaliHolidays2024_Seed.map((h, i) => ({ ...h, id: `static-${i}` }));
+    return nepaliHolidaysSeedData.map((h, i) => ({ ...h, id: `static-${i}` }));
   }
 }
