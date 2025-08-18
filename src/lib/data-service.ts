@@ -237,34 +237,26 @@ export async function createAnnouncement(announcement: { title: string; content:
     return { id: docRef.id, ...newAnnouncementData, createdAt: newAnnouncementData.createdAt.toDate() } as Announcement;
 }
 
-// Placeholder for the email sending function.
+// Placeholder for the notification sending function.
 // In a real application, this would trigger a Firebase Function.
-async function sendTaskAssignmentEmail(assignee: UserProfile, task: Task, assigner: UserProfile) {
-    const emailBody = `
-        Hello ${assignee.displayName},
-
-        A new task has been assigned to you by ${assigner.displayName}.
-
-        Task Details:
-        - Title: ${task.title}
-        - Due Date: ${task.dueDate.toLocaleDateString()}
-        - Priority: ${task.priority}
-        ${task.description ? `- Description: ${task.description}` : ''}
-
-        You can view this task in your Pingly dashboard.
-
-        Thank you,
-        The Pingly Team
+async function sendTaskAssignmentNotification(assignee: UserProfile, task: Task, assigner: UserProfile) {
+    // NOTE: For Twilio to work, the 'assignee' UserProfile would need a 'phoneNumber' field.
+    const smsBody = `
+        Hi ${assignee.displayName}, you have a new task from ${assigner.displayName}: "${task.title}". Due: ${task.dueDate.toLocaleDateString()}.
     `;
 
-    console.log("---- SENDING EMAIL (SIMULATED) ----");
-    console.log(`To: ${assignee.email}`);
-    console.log(`Subject: New Task Assigned: ${task.title}`);
-    console.log(emailBody);
-    console.log("------------------------------------");
+    console.log("---- SIMULATING NOTIFICATION ----");
+    console.log("This would trigger a Firebase Function which then calls the Twilio API.");
+    console.log(`Recipient: ${assignee.displayName} (Phone: ${assignee.phoneNumber || 'N/A'})`);
+    console.log(`Message: ${smsBody}`);
+    console.log("---------------------------------");
 
     // In a real implementation, you would make a call to a Firebase Function here
-    // e.g., await functions.httpsCallable('sendEmail')(emailData);
+    // e.g., const sendNotification = httpsCallable(functions, 'sendTaskNotification');
+    // await sendNotification({ 
+    //      to: assignee.phoneNumber, 
+    //      body: smsBody 
+    // });
 }
 
 export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>): Promise<Task> {
@@ -305,7 +297,7 @@ export async function addTask(task: Omit<Task, 'id' | 'completed' | 'creatorId'>
         ]);
 
         if (assigneeProfile && assignerProfile) {
-            await sendTaskAssignmentEmail(assigneeProfile, finalTask, assignerProfile);
+            await sendTaskAssignmentNotification(assigneeProfile, finalTask, assignerProfile);
         }
     }
     
@@ -351,7 +343,7 @@ export async function updateTask(updatedTask: Task): Promise<Task> {
         ]);
 
         if (assigneeProfile && assignerProfile) {
-            await sendTaskAssignmentEmail(assigneeProfile, updatedTask, assignerProfile);
+            await sendTaskAssignmentNotification(assigneeProfile, updatedTask, assignerProfile);
         }
     }
     

@@ -41,6 +41,7 @@ export type UserProfile = {
     email: string;
     displayName: string;
     department?: string;
+    phoneNumber?: string; // Added for SMS notifications
     createdAt: Date;
     role: 'HoD' | 'dHoD' | 'MSc Coordinator' | 'Lecturer' | 'Non-Teaching Staff';
     isAdmin: boolean;
