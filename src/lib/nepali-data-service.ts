@@ -1,10 +1,13 @@
 
+'use client';
 import type { NepaliHoliday } from './types';
+import { collection, getDocs, writeBatch, Timestamp } from 'firebase/firestore';
+import { getFirebaseApp } from './firebase';
 
-// In a real application, this would fetch from a public API.
-// For this demo, we'll provide a static list of holidays for 2024.
-// Note: These dates are approximate and for demonstration purposes.
-const nepaliHolidays2024: NepaliHoliday[] = [
+const { db } = getFirebaseApp();
+
+// Static list of holidays for 2024 to be used for seeding the database.
+const nepaliHolidays2024_Seed: Omit<NepaliHoliday, 'id'>[] = [
     { date: new Date('2024-01-11'), name: 'Prithvi Jayanti' },
     { date: new Date('2024-01-15'), name: 'Maghe Sankranti' },
     { date: new Date('2024-02-19'), name: 'Prajatantra Diwas' },
@@ -27,9 +30,50 @@ const nepaliHolidays2024: NepaliHoliday[] = [
     { date: new Date('2024-11-07'), name: 'Chhath Puja' },
 ];
 
-export async function getNepaliHolidays(): Promise<NepaliHoliday[]> {
-  await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-  return Promise.resolve(nepaliHolidays2024);
+async function seedHolidays(): Promise<NepaliHoliday[]> {
+    console.log("Seeding holidays to Firestore...");
+    const batch = writeBatch(db);
+    const holidaysRef = collection(db, 'holidays');
+    
+    const seededHolidays: NepaliHoliday[] = [];
+
+    nepaliHolidays2024_Seed.forEach(holiday => {
+        const docRef = collection(holidaysRef).doc(); // Auto-generate ID
+        batch.set(docRef, {
+            name: holiday.name,
+            date: Timestamp.fromDate(holiday.date),
+        });
+        seededHolidays.push({ id: docRef.id, ...holiday });
+    });
+
+    await batch.commit();
+    console.log("Holidays successfully seeded.");
+    return seededHolidays;
 }
 
+export async function getNepaliHolidays(): Promise<NepaliHoliday[]> {
+  try {
+    const holidaysRef = collection(db, 'holidays');
+    const querySnapshot = await getDocs(holidaysRef);
     
+    if (querySnapshot.empty) {
+        // If no holidays are found, seed them from the static list
+        return await seedHolidays();
+    }
+
+    const holidays: NepaliHoliday[] = [];
+    querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        holidays.push({
+            id: doc.id,
+            name: data.name,
+            date: (data.date as Timestamp).toDate(),
+        });
+    });
+    return holidays;
+  } catch (error) {
+    console.error("Error fetching or seeding holidays: ", error);
+    // Fallback to static data in case of Firestore error
+    return nepaliHolidays2024_Seed.map((h, i) => ({ ...h, id: `static-${i}` }));
+  }
+}

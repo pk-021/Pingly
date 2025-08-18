@@ -9,6 +9,7 @@ import {
   isSameMonth,
   isSameDay,
   addDays,
+  getDay,
 } from 'date-fns';
 import { Dot } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -86,6 +87,8 @@ export function CalendarGrid({ currentDate, selectedDate, tasks, holidays, onDat
           const dateKey = format(day, 'yyyy-MM-dd');
           const dayHolidays = holidaysByDate[dateKey] || [];
           const dayTasks = tasksByDate[dateKey] || [];
+          const isSaturday = getDay(day) === 6;
+          const isHoliday = dayHolidays.length > 0 || isSaturday;
           
           return (
             <div
@@ -96,6 +99,7 @@ export function CalendarGrid({ currentDate, selectedDate, tasks, holidays, onDat
                 isSameMonth(day, currentDate) ? 'bg-card' : 'bg-muted/50',
                 !isSameMonth(day, currentDate) && 'text-muted-foreground',
                 'hover:bg-secondary',
+                isHoliday && 'bg-red-50 text-red-700',
                 isSameDay(day, selectedDate) && 'bg-primary/10 ring-2 ring-primary'
               )}
             >
@@ -104,7 +108,7 @@ export function CalendarGrid({ currentDate, selectedDate, tasks, holidays, onDat
                   {dayHolidays.map(holiday => (
                     <Tooltip key={holiday.name}>
                       <TooltipTrigger asChild>
-                        <Dot className="text-red-500 -ml-2 -mt-1"/>
+                        <Dot className={cn("text-red-500 -ml-2 -mt-1", !isHoliday && "text-red-500")} />
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>{holiday.name}</p>
@@ -115,7 +119,8 @@ export function CalendarGrid({ currentDate, selectedDate, tasks, holidays, onDat
                 <div
                   className={cn(
                     'w-7 h-7 flex items-center justify-center rounded-full text-sm',
-                    isSameDay(day, today) && 'bg-primary text-primary-foreground'
+                    isSameDay(day, today) && 'bg-primary text-primary-foreground',
+                    isSameDay(day, today) && isHoliday && 'bg-red-600 text-white'
                   )}
                 >
                   {format(day, 'd')}

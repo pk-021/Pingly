@@ -42,26 +42,26 @@ export default function CalendarPage() {
   useEffect(() => {
     if (!isClient) return;
 
-    const loadData = async () => {
-      setIsLoading(true);
-      const promises: [Promise<Task[]>, Promise<CalendarEvent[]>, Promise<NepaliHoliday[]>?] = [getTasks(), getClassRoutine()];
-      if (showNepaliCalendar) {
-          promises.push(getNepaliHolidays());
-      }
-      const [fetchedTasks, fetchedClassRoutine, fetchedHolidays] = await Promise.all(promises);
-      
-      setTasks(fetchedTasks as Task[]);
-      setClassRoutine(fetchedClassRoutine as CalendarEvent[]);
-      if (fetchedHolidays) {
-          setNepaliHolidays(fetchedHolidays as NepaliHoliday[]);
-      } else {
-          setNepaliHolidays([]);
-      }
-      setIsLoading(false);
-    };
-
     loadData();
   }, [showNepaliCalendar, isClient]);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    const promises: [Promise<Task[]>, Promise<CalendarEvent[]>, Promise<NepaliHoliday[]>?] = [getTasks(), getClassRoutine()];
+    if (showNepaliCalendar) {
+        promises.push(getNepaliHolidays());
+    }
+    const [fetchedTasks, fetchedClassRoutine, fetchedHolidays] = await Promise.all(promises);
+    
+    setTasks(fetchedTasks as Task[]);
+    setClassRoutine(fetchedClassRoutine as CalendarEvent[]);
+    if (fetchedHolidays) {
+        setNepaliHolidays(fetchedHolidays as NepaliHoliday[]);
+    } else {
+        setNepaliHolidays([]);
+    }
+    setIsLoading(false);
+  };
 
   const handleTaskDialogClose = () => {
     setIsTaskDialogOpen(false);
@@ -99,24 +99,6 @@ export default function CalendarPage() {
     }
   };
   
-  const loadData = async () => {
-    setIsLoading(true);
-    const promises: [Promise<Task[]>, Promise<CalendarEvent[]>, Promise<NepaliHoliday[]>?] = [getTasks(), getClassRoutine()];
-    if (showNepaliCalendar) {
-        promises.push(getNepaliHolidays());
-    }
-    const [fetchedTasks, fetchedClassRoutine, fetchedHolidays] = await Promise.all(promises);
-    
-    setTasks(fetchedTasks as Task[]);
-    setClassRoutine(fetchedClassRoutine as CalendarEvent[]);
-    if (fetchedHolidays) {
-        setNepaliHolidays(fetchedHolidays as NepaliHoliday[]);
-    } else {
-        setNepaliHolidays([]);
-    }
-    setIsLoading(false);
-  };
-
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
     setIsTaskDialogOpen(true);
@@ -179,6 +161,7 @@ export default function CalendarPage() {
             selectedDate={selectedDate}
             tasks={tasks}
             routine={classRoutine}
+            holidays={nepaliHolidays}
             isLoading={isLoading}
             onTaskClick={handleTaskClick}
           />

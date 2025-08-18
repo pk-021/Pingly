@@ -31,6 +31,7 @@ export type Task = {
 export type DisplayItem = CalendarEvent | Task;
 
 export type NepaliHoliday = {
+  id: string;
   date: Date;
   name: string;
 };
@@ -54,6 +55,4 @@ export type Announcement = {
     createdAt: Date;
     targetRoles: string[];
 }
-    
-
     

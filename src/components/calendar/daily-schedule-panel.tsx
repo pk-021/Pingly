@@ -2,20 +2,22 @@
 'use client';
 
 import { useMemo } from 'react';
-import { format, getDay, set, isSameDay, formatDistanceToNow, startOfDay } from 'date-fns';
+import { format, getDay, isSameDay, formatDistanceToNow, startOfDay } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Pin, BookOpen, ListTodo, CalendarDays } from 'lucide-react';
-import type { Task, CalendarEvent } from '@/lib/types';
+import { Pin, BookOpen, ListTodo, CalendarDays, PartyPopper } from 'lucide-react';
+import type { Task, CalendarEvent, NepaliHoliday } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 type DailySchedulePanelProps = {
   selectedDate: Date;
   tasks: Task[];
   routine: CalendarEvent[];
+  holidays: NepaliHoliday[];
   isLoading: boolean;
   onTaskClick: (task: Task) => void;
 };
@@ -24,6 +26,7 @@ export function DailySchedulePanel({
   selectedDate,
   tasks,
   routine,
+  holidays,
   isLoading,
   onTaskClick,
 }: DailySchedulePanelProps) {
@@ -55,11 +58,17 @@ export function DailySchedulePanel({
       .filter(event => event.dayOfWeek === dayOfWeek)
       .map(event => ({
         ...event,
-        startTime: set(selectedDate, { hours: event.startTime.getHours(), minutes: event.startTime.getMinutes() }),
-        endTime: set(selectedDate, { hours: event.endTime.getHours(), minutes: event.endTime.getMinutes() }),
+        startTime: new Date(selectedDate.setHours(event.startTime.getHours(), event.startTime.getMinutes())),
+        endTime: new Date(selectedDate.setHours(event.endTime.getHours(), event.endTime.getMinutes())),
       }))
       .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   }, [routine, selectedDate]);
+  
+  const holidayInfo = useMemo(() => {
+    if (getDay(selectedDate) === 6) return { isHoliday: true, name: 'Saturday' };
+    const foundHoliday = holidays.find(h => isSameDay(h.date, selectedDate));
+    return foundHoliday ? { isHoliday: true, name: foundHoliday.name } : { isHoliday: false, name: null };
+  }, [holidays, selectedDate]);
 
   return (
     <Card className="sticky top-6">
@@ -77,6 +86,14 @@ export function DailySchedulePanel({
                 </div>
               ) : (
                 <>
+                  {holidayInfo.isHoliday && (
+                      <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 [&>svg]:text-red-800">
+                        <PartyPopper className="h-4 w-4" />
+                        <AlertTitle>It's a Holiday!</AlertTitle>
+                        <AlertDescription>{holidayInfo.name}</AlertDescription>
+                      </Alert>
+                  )}
+
                   {selectedDayRoutine.length > 0 && (
                     <div>
                       <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
@@ -170,7 +187,7 @@ export function DailySchedulePanel({
                     </div>
                   )}
 
-                  {selectedDayRoutine.length === 0 && selectedDayScheduledTasks.length === 0 && selectedDayTasks.length === 0 && (
+                  {!holidayInfo.isHoliday && selectedDayRoutine.length === 0 && selectedDayScheduledTasks.length === 0 && selectedDayTasks.length === 0 && (
                        <div className="text-center py-10">
                           <p className="text-muted-foreground">No routine or tasks for this day.</p>
                       </div>
