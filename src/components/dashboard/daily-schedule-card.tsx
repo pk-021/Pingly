@@ -21,6 +21,11 @@ export default function DailyScheduleCard() {
     const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
     const { toast } = useToast();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const loadData = async () => {
         setIsLoading(true);
@@ -31,14 +36,22 @@ export default function DailyScheduleCard() {
         ]);
         setTasks(fetchedTasks);
         setClassRoutine(fetchedClassRoutine);
-        const nepaliCalendarEnabled = localStorage.getItem('nepali-calendar-enabled') === 'true';
-        setHolidays(nepaliCalendarEnabled ? fetchedHolidays : []);
+
+        if (isClient) {
+            const nepaliCalendarEnabled = localStorage.getItem('nepali-calendar-enabled') === 'true';
+            setHolidays(nepaliCalendarEnabled ? fetchedHolidays : []);
+        } else {
+            setHolidays([]);
+        }
+
         setIsLoading(false);
     };
 
     useEffect(() => {
-        loadData();
-    }, []);
+        if (isClient) {
+            loadData();
+        }
+    }, [isClient]);
 
     const handleTaskDialogClose = () => {
         setIsTaskDialogOpen(false);
@@ -54,7 +67,9 @@ export default function DailyScheduleCard() {
             await addTask(task as Omit<Task, 'id' | 'creatorId' | 'completed'>);
             toast({ title: "Task Added", description: "Your new task has been successfully added." });
           }
-          loadData();
+          if (isClient) {
+            loadData();
+          }
           handleTaskDialogClose();
         } catch (error) {
           toast({ variant: 'destructive', title: "Error", description: "Failed to save the task." });
@@ -65,7 +80,9 @@ export default function DailyScheduleCard() {
         try {
             await deleteTask(taskId);
             toast({ title: "Task Deleted", description: "The task has been removed." });
-            loadData();
+            if (isClient) {
+              loadData();
+            }
             handleTaskDialogClose();
         } catch (error) {
             toast({ variant: 'destructive', title: "Error", description: "Failed to delete the task." });
@@ -126,7 +143,7 @@ export default function DailyScheduleCard() {
                     <CardDescription>Your class routine and scheduled tasks for today.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {isLoading ? (
+                    {isLoading || !isClient ? (
                         <div className="space-y-6">
                              <Skeleton className="h-24 w-full" />
                              <Skeleton className="h-24 w-full" />
