@@ -306,10 +306,11 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
   const handleMarkComplete = () => {
     if (task) {
         const formData = form.getValues();
-        handleSave({
+        onSave({
+            ...task,
             ...formData,
             completed: true, 
-        } as any);
+        });
     }
   };
 
@@ -318,7 +319,11 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
   const isPersonalTask = !task?.assigneeId;
   const isUserAssignee = user?.uid === task?.assigneeId;
   const isUserCreator = user?.uid === task?.creatorId;
+  
   const canCompleteTask = (isPersonalTask && isUserCreator) || isUserAssignee;
+  const canEditTask = isEditing || !task; // Can edit if creating a new task, or explicitly in edit mode.
+  const canDeleteTask = isUserCreator || isUserAssignee;
+  const isPersonalContext = !watchedAssigneeId || watchedAssigneeId === 'personal';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -326,7 +331,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
         <DialogHeader>
           <div className="flex justify-between items-center">
              <DialogTitle>{task ? (isEditing ? 'Edit Task' : 'Task Details') : 'Add New Task'}</DialogTitle>
-             {task && !task.completed && !isEditing && (
+             {task && !task.completed && !isEditing && (isUserCreator || isUserAssignee) && (
                 <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)}>
                     <Pencil className="h-4 w-4" />
                 </Button>
@@ -431,7 +436,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                         name="dueDate"
                         render={({ field }) => (
                             <FormItem className="flex-1 flex flex-col">
-                            <FormLabel>{watchedAssigneeId === 'personal' ? "Due Date" : "Deadline"}</FormLabel>
+                            <FormLabel>{!isPersonalContext ? "Deadline" : "Due Date"}</FormLabel>
                             <Popover>
                                 <PopoverTrigger asChild>
                                 <FormControl>
@@ -471,7 +476,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                         )}
                     />
                     
-                    {watchedAssigneeId === 'personal' && watchedDueDate && (
+                    {isPersonalContext && watchedDueDate && (
                     <Collapsible defaultOpen className="space-y-4 rounded-md border p-4">
                         <CollapsibleTrigger asChild>
                              <div className="flex items-center justify-between cursor-pointer">
@@ -599,9 +604,17 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                         </div>
                     )}
                     
-                    <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">Assigned by</h3>
-                        <p className="text-sm">{creator?.displayName || "..."} {task.creatorId === user?.uid && "(You)"}</p>
+                    <div className="grid grid-cols-2 gap-8">
+                        <div>
+                            <h3 className="text-sm font-medium text-muted-foreground">Assigned by</h3>
+                            <p className="text-sm">{creator?.displayName || "..."} {task.creatorId === user?.uid && "(You)"}</p>
+                        </div>
+                        {assignee && (
+                             <div>
+                                <h3 className="text-sm font-medium text-muted-foreground">Assigned to</h3>
+                                <p className="text-sm">{assignee.displayName} {task.assigneeId === user?.uid && "(You)"}</p>
+                            </div>
+                        )}
                     </div>
 
 
@@ -652,6 +665,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                     )}
                     
                     <DialogFooter>
+                        {canDeleteTask && (
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="destructive" className="mr-auto">
@@ -671,6 +685,7 @@ export function TaskDialog({ isOpen, onClose, onSave, onDelete, task, routine, t
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
+                        )}
                         <DialogClose asChild><Button type="button" variant="ghost">Close</Button></DialogClose>
                         {task.completed && <Button type="submit" disabled>Completed</Button>}
                     </DialogFooter>

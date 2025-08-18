@@ -256,6 +256,28 @@ export async function getTasks(): Promise<Task[]> {
     }
 }
 
+export async function getCreatedTasks(): Promise<Task[]> {
+    const user = auth.currentUser;
+    if (!user) return [];
+
+    try {
+        const tasksRef = collection(db, "tasks");
+        const q = query(tasksRef, where('creatorId', '==', user.uid));
+        
+        const querySnapshot = await getDocs(q);
+
+        const tasks: Task[] = [];
+        querySnapshot.forEach((doc) => {
+            tasks.push(taskFromDoc(doc));
+        });
+        
+        return tasks;
+    } catch (error) {
+        console.error("Error getting created tasks: ", error);
+        return [];
+    }
+}
+
 export async function createAnnouncement(announcement: { title: string; content: string; targetRoles: string[] }): Promise<Announcement> {
     const user = auth.currentUser;
     if (!user) throw new Error("User not authenticated");
