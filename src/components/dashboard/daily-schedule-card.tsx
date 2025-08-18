@@ -98,11 +98,21 @@ export default function DailyScheduleCard() {
     }
 
     const holidayInfo = useMemo(() => {
-        if (getDay(today) === 6) return { isHoliday: true, name: 'Saturday' };
-        if (!showNepaliCalendar) return { isHoliday: false, name: null };
+        const isSaturday = getDay(today) === 6;
         const foundHoliday = holidays.find(h => isSameDay(h.date, today));
-        return foundHoliday ? { isHoliday: true, name: foundHoliday.name } : { isHoliday: false, name: null };
-    }, [holidays, today, showNepaliCalendar]);
+        const holidayName = foundHoliday ? foundHoliday.name : null;
+        
+        if (isSaturday && holidayName) {
+            return { isHoliday: true, name: `Saturday & ${holidayName}` };
+        }
+        if (isSaturday) {
+            return { isHoliday: true, name: 'Saturday' };
+        }
+        if (holidayName) {
+            return { isHoliday: true, name: holidayName };
+        }
+        return { isHoliday: false, name: null };
+    }, [holidays, today]);
 
     const todayTasks = useMemo(() => {
         return tasks

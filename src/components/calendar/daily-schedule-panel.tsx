@@ -65,9 +65,20 @@ export function DailySchedulePanel({
   }, [routine, selectedDate]);
   
   const holidayInfo = useMemo(() => {
-    if (getDay(selectedDate) === 6) return { isHoliday: true, name: 'Saturday' };
+    const isSaturday = getDay(selectedDate) === 6;
     const foundHoliday = holidays.find(h => isSameDay(h.date, selectedDate));
-    return foundHoliday ? { isHoliday: true, name: foundHoliday.name } : { isHoliday: false, name: null };
+    const holidayName = foundHoliday ? foundHoliday.name : null;
+    
+    if (isSaturday && holidayName) {
+      return { isHoliday: true, name: `Saturday & ${holidayName}` };
+    }
+    if (isSaturday) {
+      return { isHoliday: true, name: 'Saturday' };
+    }
+    if (holidayName) {
+      return { isHoliday: true, name: holidayName };
+    }
+    return { isHoliday: false, name: null };
   }, [holidays, selectedDate]);
 
   return (
