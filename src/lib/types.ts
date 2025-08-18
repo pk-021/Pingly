@@ -44,6 +44,7 @@ export type UserProfile = {
     createdAt: Date;
     role: 'HoD' | 'dHoD' | 'MSc Coordinator' | 'Lecturer' | 'Non-Teaching Staff';
     isAdmin: boolean;
+    hasCompletedOnboarding?: boolean;
 }
 
 export type Announcement = {

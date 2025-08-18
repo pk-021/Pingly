@@ -71,12 +71,13 @@ export async function createUserProfile(user: { uid: string, email: string | nul
         };
         
         console.log(`Creating new profile for user ${user.uid}:`, newUserProfile);
-        // Set the isAdmin flag to false for all new users by default.
+
         await setDoc(userRef, {
             ...newUserProfile,
             createdAt: Timestamp.fromDate(new Date()),
             isAdmin: false,
             role: 'Lecturer', // Default role
+            hasCompletedOnboarding: false, // New flag
         });
         console.log(`Successfully created profile for user ${user.uid}.`);
 
@@ -147,6 +148,36 @@ export async function updateUserIsAdmin(userId: string, isAdmin: boolean): Promi
         throw new Error("Failed to update user admin status in database.");
     }
 }
+
+export async function completeOnboarding(userId: string, department: string, routineEvents: Omit<CalendarEvent, 'id'>[]) {
+    const user = auth.currentUser;
+    if (!user || user.uid !== userId) throw new Error("User not authenticated or mismatched ID.");
+
+    const batch = writeBatch(db);
+
+    // 1. Update the user's profile
+    const userRef = doc(db, "users", userId);
+    batch.update(userRef, {
+        department: department,
+        hasCompletedOnboarding: true,
+    });
+
+    // 2. Add all the routine events
+    const routineCollection = collection(db, "routines");
+    routineEvents.forEach(event => {
+        const newEventRef = doc(routineCollection); // Auto-generates an ID
+        const newEventData = {
+            ...event,
+            creatorId: userId,
+            startTime: Timestamp.fromDate(event.startTime),
+            endTime: Timestamp.fromDate(event.endTime),
+        };
+        batch.set(newEventRef, newEventData);
+    });
+
+    await batch.commit();
+}
+
 
 // --- Task Management ---
 export async function getTasks(): Promise<Task[]> {

@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { createUserProfile, getUserProfile } from '@/lib/data-service';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
+import type { UserProfile } from '@/lib/types';
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -24,27 +25,30 @@ export default function LoginPage() {
 
   const handleAuthSuccess = async (user: User, name?: string) => {
     try {
-      // Check if a profile already exists.
       const existingProfile = await getUserProfile(user.uid);
 
-      if (!existingProfile) {
-          // For sign up, the name is provided from the form.
-          // For Google sign in, the name comes from the Google profile.
+      if (existingProfile) {
+        if (existingProfile.hasCompletedOnboarding) {
+          router.replace('/dashboard');
+        } else {
+          router.replace('/onboarding');
+        }
+      } else {
           const finalName = name || user.displayName;
 
           if (!user.displayName && finalName) {
             await updateProfile(user, { displayName: finalName });
           }
 
-          // Create the profile since it doesn't exist
           await createUserProfile({
               uid: user.uid,
               email: user.email,
               displayName: finalName
           });
+          // New user, send to onboarding
+          router.replace('/onboarding');
       }
       
-      router.replace('/dashboard');
     } catch (e: any) {
       const errorMessage = `Authentication successful, but failed to set up user profile: ${e.message}`;
       console.error(errorMessage, e);
@@ -123,63 +127,51 @@ export default function LoginPage() {
       
       if (error.code) {
         switch (error.code) {
-          // User cancelled the sign-in flow
           case 'auth/cancelled-popup-request':
           case 'auth/popup-closed-by-user':
             errorMessage = 'Sign-in was cancelled. Please try again.';
             break;
             
-          // Popup was blocked by browser
           case 'auth/popup-blocked':
             errorMessage = 'Pop-up was blocked by your browser. Please allow pop-ups for this site and try again.';
             break;
             
-          // Account exists with different credential
           case 'auth/account-exists-with-different-credential':
             errorMessage = 'An account already exists with the same email address but different sign-in credentials. Try signing in with your email and password.';
             break;
             
-          // Network errors
           case 'auth/network-request-failed':
             errorMessage = 'Network error occurred. Please check your internet connection and try again.';
             break;
             
-          // Too many requests
           case 'auth/too-many-requests':
             errorMessage = 'Too many failed attempts. Please wait a moment before trying again.';
             break;
             
-          // Invalid API key or configuration
           case 'auth/invalid-api-key':
             errorMessage = 'Authentication configuration error. Please contact support.';
             break;
             
-          // Auth domain not authorized
           case 'auth/unauthorized-domain':
             errorMessage = 'This domain is not authorized for authentication. Please contact support.';
             break;
             
-          // Operation not allowed
           case 'auth/operation-not-allowed':
             errorMessage = 'Google Sign-In is not enabled. Please contact support.';
             break;
             
-          // Invalid credential
           case 'auth/invalid-credential':
             errorMessage = 'The credential received is malformed or has expired. Please try again.';
             break;
             
-          // User disabled
           case 'auth/user-disabled':
             errorMessage = 'This account has been disabled. Please contact support.';
             break;
             
-          // Web storage unsupported
           case 'auth/web-storage-unsupported':
             errorMessage = 'Your browser does not support web storage or it is disabled. Please enable cookies and try again.';
             break;
             
-          // Internal error
           case 'auth/internal-error':
             errorMessage = 'An internal error occurred. Please try again later.';
             break;
@@ -189,12 +181,10 @@ export default function LoginPage() {
         }
       }
       
-      // Handle specific error types that might not have codes
       if (error.name === 'FirebaseError' && !error.code) {
         errorMessage = 'Firebase authentication error occurred. Please try again.';
       }
       
-      // Handle network-related errors without specific codes
       if (error.message?.includes('network') || error.message?.includes('offline')) {
         errorMessage = 'Network error. Please check your internet connection and try again.';
       }

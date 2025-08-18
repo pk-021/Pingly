@@ -6,8 +6,10 @@ import { AppSidebarContent } from '@/components/app-sidebar-content';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getUserProfile } from '@/lib/data-service';
+import type { UserProfile } from '@/lib/types';
 
 export default function AppLayout({
   children,
@@ -16,14 +18,30 @@ export default function AppLayout({
 }) {
   const [user, loading] = useAuthState(auth);
   const router = useRouter();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (loading) return;
+    if (!user) {
       router.replace('/login');
+      return;
     }
+
+    getUserProfile(user.uid).then(userProfile => {
+        if (userProfile) {
+            setProfile(userProfile);
+            if (!userProfile.hasCompletedOnboarding) {
+                router.replace('/onboarding');
+            }
+        }
+        setProfileLoading(false);
+    });
   }, [user, loading, router]);
 
-  if (loading) {
+  const isLoading = loading || profileLoading;
+
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="space-y-4">
@@ -38,8 +56,8 @@ export default function AppLayout({
   }
 
   // This check is important to prevent a flash of the app layout before redirecting.
-  // We only render the layout if there is a user.
-  if (!user) {
+  // We only render the layout if there is a user who has completed onboarding.
+  if (!user || !profile?.hasCompletedOnboarding) {
     return null; 
   }
 
