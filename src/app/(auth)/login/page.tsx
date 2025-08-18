@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const router = useRouter();
 
@@ -63,6 +64,11 @@ export default function LoginPage() {
           setError("Please enter your name.");
           setLoading(false);
           return;
+        }
+        if (password !== confirmPassword) {
+            setError("Passwords do not match.");
+            setLoading(false);
+            return;
         }
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await handleAuthSuccess(userCredential.user, displayName);
@@ -248,6 +254,19 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
+
+        {isSignUp && (
+            <div className="grid gap-2">
+                <Label htmlFor="confirm-password">Confirm Password</Label>
+                <Input
+                id="confirm-password"
+                type="password"
+                required={isSignUp}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+            </div>
+        )}
         
         {error && (
             <div className="text-red-500 text-sm text-center bg-red-100 p-3 rounded-md border border-red-200">
