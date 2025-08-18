@@ -1,7 +1,8 @@
 
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getTasks, getClassRoutine, updateTask, addTask, deleteTask, getNepaliHolidays } from "@/lib/data-service";
+import { getTasks, getClassRoutine, updateTask, addTask, deleteTask } from "@/lib/data-service";
+import { getNepaliHolidays } from "@/lib/nepali-data-service";
 import type { CalendarEvent, Task, NepaliHoliday } from "@/lib/types";
 import { isToday, format, getDay, set, isSameDay } from 'date-fns';
 import { CalendarClock, Pin, BookOpen, CalendarCheck, PartyPopper } from "lucide-react";
@@ -199,6 +200,7 @@ export default function DailyScheduleCard() {
                             ) : !holidayInfo.isHoliday ? (
                                 <div className="text-center py-10">
                                     <p className="text-muted-foreground">No events scheduled for today.</p>
+
                                     <p className="text-sm text-muted-foreground">Enjoy your free day!</p>
                                 </div>
                             ) : null }
