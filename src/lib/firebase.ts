@@ -10,14 +10,14 @@ import { getDatabase, type Database } from "firebase/database";
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyACiqz7i27Yu0h1A2yoFx6BOsrWqYeD4XI",
-  authDomain: "pingly0.firebaseapp.com",
-  projectId: "pingly0",
-  storageBucket: "pingly0.firebasestorage.app",
-  messagingSenderId: "898991883909",
-  appId: "1:898991883909:web:9bfe8775f4cbc440ab4bec",
-  measurementId: "G-38HQ6H5QCB",
-  databaseURL: "https://pingly0-default-rtdb.firebaseio.com"
+  apiKey: "AIzaSyBpYpr-UawfnR7_2Ak5xCELl6vTWWlRbRA",
+  authDomain: "pingly-web-k0gs0.firebaseapp.com",
+  projectId: "pingly-web-k0gs0",
+  storageBucket: "pingly-web-k0gs0.firebasestorage.app",
+  messagingSenderId: "897489479468",
+  appId: "1:897489479468:web:bb8435d6ec3db860a0ae89",
+  measurementId: "",
+  databaseURL: "https://pingly-web-k0gs0-default-rtdb.firebaseio.com"
 };
 // Initialize Firebase for client-side
 let app: FirebaseApp;
